@@ -1,8 +1,26 @@
 {
   "version": 2,
-  "dgSpecHash": "LaMUGXLAlpXeim64nfDIpKRpy1RpEcJLDlx7qXaG4L4r4qr/+HMV7wuV4AlgSArhttwcDbojbrm2/rKpNEPpGA==",
+  "dgSpecHash": "frqGYRituDbNscRb6FSdSpVpZsVBfvS6GBvMCu9DCiJ+iqg1L35XsiQPaRVogACu6AEF2aY6S5AjFosUZ9Ycsw==",
   "success": true,
   "projectFilePath": "/Users/Nathan/Dev/NET/mailbox-service/mailbox-service/mailbox-service.csproj",
-  "expectedPackageFiles": [],
+  "expectedPackageFiles": [
+    "/Users/Nathan/.nuget/packages/dnsclient/1.4.0/dnsclient.1.4.0.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/microsoft.aspnetcore.jsonpatch/5.0.6/microsoft.aspnetcore.jsonpatch.5.0.6.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/microsoft.aspnetcore.mvc.newtonsoftjson/5.0.6/microsoft.aspnetcore.mvc.newtonsoftjson.5.0.6.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/microsoft.csharp/4.7.0/microsoft.csharp.4.7.0.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/microsoft.netcore.platforms/2.1.2/microsoft.netcore.platforms.2.1.2.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/mongodb.bson/2.13.2/mongodb.bson.2.13.2.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/mongodb.driver/2.13.2/mongodb.driver.2.13.2.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/mongodb.driver.core/2.13.2/mongodb.driver.core.2.13.2.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/mongodb.libmongocrypt/1.2.2/mongodb.libmongocrypt.1.2.2.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/newtonsoft.json/13.0.1/newtonsoft.json.13.0.1.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/newtonsoft.json.bson/1.0.2/newtonsoft.json.bson.1.0.2.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/platform-csharp-common/1.0.27/platform-csharp-common.1.0.27.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/restsharp/106.11.7/restsharp.106.11.7.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/sharpcompress/0.23.0/sharpcompress.0.23.0.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/system.buffers/4.5.1/system.buffers.4.5.1.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/system.runtime.compilerservices.unsafe/5.0.0/system.runtime.compilerservices.unsafe.5.0.0.nupkg.sha512",
+    "/Users/Nathan/.nuget/packages/system.text.encoding.codepages/4.5.1/system.text.encoding.codepages.4.5.1.nupkg.sha512"
+  ],
   "logs": []
 }
