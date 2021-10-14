@@ -1,3 +1,10 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using MongoDB.Bson.Serialization.Attributes;
+using Newtonsoft.Json;
+using Rumble.Platform.Common.Web;
+
 namespace Rumble.Platform.MailboxService.Models
 {
     public class GlobalMessage
@@ -5,3 +12,7 @@ namespace Rumble.Platform.MailboxService.Models
         
     }
 }
+
+// GlobalMessage : Message
+// - EligibleForNewAccounts (bool)
+// - Attachment
