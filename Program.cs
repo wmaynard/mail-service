@@ -7,7 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace mailbox_service
+namespace Rumble.Platform.MailboxService
 {
     public class Program
     {
