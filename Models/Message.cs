@@ -7,9 +7,63 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
-    public class Message
+    public class Message : PlatformDataModel
     {
+        internal const string DB_KEY_SUBJECT = "sbjct";
+        internal const string DB_KEY_BODY = "body";
+        internal const string DB_KEY_ATTACHMENTS = "attchmnts";
+        internal const string DB_KEY_TIMESTAMP = "tmestmp";
+        internal const string DB_KEY_EXPIRATION = "expire";
+        internal const string DB_KEY_VISIBLE_FROM = "visible";
+        internal const string DB_KEY_IMAGE = "img";
+        internal const string DB_KEY_STATUS = "status";
+
+        public const string FRIENDLY_KEY_SUBJECT = "subject";
+        public const string FRIENDLY_KEY_BODY = "body";
+        public const string FRIENDLY_KEY_ATTACHMENTS = "attachments";
+        public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
+        public const string FRIENDLY_KEY_EXPIRATION = "expiration";
+        public const string FRIENDLY_KEY_VISIBLE_FROM = "visibleFrom";
+        public const string FRIENDLY_KEY_IMAGE = "image";
+        public const string FRIENDLY_KEY_STATUS = "status";
+
+        [BsonElement(DB_KEY_SUBJECT)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_SUBJECT)]
+        public string Subject { get; private set; }
         
+        [BsonElement(DB_KEY_BODY)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_BODY)]
+        public string Body { get; private set; }
+        
+        [BsonElement(DB_KEY_ATTACHMENTS)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_ATTACHMENTS)]
+        public List<Attachment> Attachments { get; private set;}
+        
+        [BsonElement(DB_KEY_TIMESTAMP)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_TIMESTAMP)]
+        public UnixTime Timestamp { get; private set; }
+        
+        [BsonElement(DB_KEY_EXPIRATION)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_EXPIRATION)]
+        public UnixTime Expiration { get; private set; }
+        
+        [BsonElement(DB_KEY_VISIBLE_FROM)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_VISIBLE_FROM)]
+        public UnixTime VisibleFrom { get; private set; }
+        
+        [BsonElement(DB_KEY_IMAGE)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_IMAGE)]
+        public string Image { get; private set; }
+        
+        public enum StatusType { CLAIMED, UNCLAIMED }
+        [BsonElement(DB_KEY_STATUS)]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_STATUS)]
+        public StatusType Status { get; private set; }
+
+        [BsonIgnore]
+        [JsonIgnore]
+        public bool IsExpired => Expiration <= UnixTime;
+
     }
 }
 
