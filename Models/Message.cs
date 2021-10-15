@@ -41,15 +41,15 @@ namespace Rumble.Platform.MailboxService.Models
         
         [BsonElement(DB_KEY_TIMESTAMP)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_TIMESTAMP)]
-        public UnixTime Timestamp { get; private set; }
+        public long Timestamp { get; private set; }
         
         [BsonElement(DB_KEY_EXPIRATION)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_EXPIRATION)]
-        public UnixTime Expiration { get; private set; }
+        public long Expiration { get; private set; }
         
         [BsonElement(DB_KEY_VISIBLE_FROM)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_VISIBLE_FROM)]
-        public UnixTime VisibleFrom { get; private set; }
+        public long VisibleFrom { get; private set; }
         
         [BsonElement(DB_KEY_IMAGE)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_IMAGE)]
@@ -63,6 +63,26 @@ namespace Rumble.Platform.MailboxService.Models
         [BsonIgnore]
         [JsonIgnore]
         public bool IsExpired => Expiration <= UnixTime;
+
+        public Message(
+            string subject,
+            string body,
+            List<Attachment> attachments,
+            long expiration,
+            long visibleFrom,
+            string image,
+            StatusType status
+        )
+        {
+            Subject = subject;
+            Body = body;
+            Attachments = attachments;
+            Timestamp = UnixTime;
+            Expiration = expiration;
+            VisibleFrom = visibleFrom;
+            Image = image;
+            Status = status;
+        }
 
     }
 }
