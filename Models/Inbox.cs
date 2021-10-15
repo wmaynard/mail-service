@@ -12,7 +12,7 @@ namespace Rumble.Platform.MailboxService.Models
         internal const string DB_KEY_ACCOUNT_ID = "aid";
         internal const string DB_KEY_MESSAGES = "msgs";
 
-        public const string FRIENDLY_KEY_ACCOUNT_ID = "accoundId";
+        public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
         public const string FRIENDLY_KEY_MESSAGES = "messages";
         
         [BsonElement(DB_KEY_ACCOUNT_ID)]
