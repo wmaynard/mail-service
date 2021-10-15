@@ -7,8 +7,13 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
-    public class Attachment
+    public class Attachment : PlatformDataModel
     {
-        
+        //TODO
     }
 }
+
+// Attachment - tentative
+// - Currency
+// - Heroes
+// - Equipment
