@@ -7,7 +7,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
-    public class Message : PlatformDataModel
+    public class Message : PlatformCollectionDocument
     {
         internal const string DB_KEY_SUBJECT = "sbjct";
         internal const string DB_KEY_BODY = "body";
