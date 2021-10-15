@@ -23,7 +23,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonProperty(PropertyName = FRIENDLY_KEY_ATTACHMENTS)]
         public List<Attachment> Attachments { get; private set; }
 
-        public GlobalMessage(bool eligibleForNewAccounts, List<Attachment> attachments)
+        public GlobalMessage(bool eligibleForNewAccounts, List<Attachment> attachments) : base()
         {
             EligibleForNewAccounts = eligibleForNewAccounts;
             Attachments = attachments;
