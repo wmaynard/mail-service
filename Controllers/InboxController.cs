@@ -1,8 +1,43 @@
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
+using Rumble.Platform.MailboxService.Models;
+using Rumble.Platform.MailboxService.Services;
+
 namespace Rumble.Platform.MailboxService.Controllers
 {
-    public class InboxController
+    [ApiController, Route(template: "inbox"), RequireAuth]
+    public class InboxController : PlatformController
     {
-        
+        private readonly InboxService _inboxService;
+
+        public InboxController(InboxService inboxService, IConfiguration config) : base(config)
+        {
+            _inboxService = inboxService;
+        }
+
+        [HttpGet, Route(template: "health"), NoAuth]
+        public override ActionResult HealthCheck()
+        {
+            return Ok(_inboxService.HealthCheckResponseObject);
+        }
+
+        [HttpGet]
+        public ObjectResult GetInbox()
+        {
+            
+        }
+
+        [HttpPatch, Route(template: "claim")]
+        public ObjectResult Claim()
+        {
+            string messageId = Require<string>(key: "messageId");
+            if (messageId == null)
+            {
+                
+            }
+        }
     }
 }
 

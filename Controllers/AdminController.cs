@@ -1,8 +1,36 @@
+using System.Collections.Generic;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Common.Web;
+using Rumble.Platform.MailboxService.Models;
+using Rumble.Platform.MailboxService.Services;
+
 namespace Rumble.Platform.MailboxService.Controllers
 {
-    public class AdminController
+    [ApiController, Route(template: "admin"), RequireAuth]
+    public class AdminController : PlatformController
     {
-        
+        private readonly GlobalMessageService _globalMessageService;
+
+        public AdminController(GlobalMessageService globalMessageService, IConfiguration config) : base(config)
+        {
+            _globalMessageService = globalMessageService;
+        }
+
+        [HttpGet, Route(template: "health"), NoAuth]
+        public override ActionResult HealthCheck()
+        {
+            return Ok(_globalMessageService.HealthCheckResponseObject);
+        }
+
+        [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
+        public ActionResult GlobalMessageList()
+        {
+            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
+
+            return Ok(new {GlobalMessages = globalMessages});
+        }
     }
 }
 
