@@ -9,7 +9,7 @@ namespace Rumble.Platform.MailboxService.Models
 {
     public class Attachment : PlatformDataModel
     {
-        //TODO
+        // TODO implement
     }
 }
 

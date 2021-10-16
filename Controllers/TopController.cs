@@ -21,6 +21,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpGet, Route(template: "health"), NoAuth]
+        
         public override ActionResult HealthCheck()
         {
             return Ok(

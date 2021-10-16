@@ -23,7 +23,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonProperty(PropertyName = FRIENDLY_KEY_ATTACHMENT)]
         public Attachment Attachment { get; private set; }
 
-        public GlobalMessage(
+        public GlobalMessage( // possibly no params and use object initializer instead?
             string subject,
             string body,
             List<Attachment> attachments,

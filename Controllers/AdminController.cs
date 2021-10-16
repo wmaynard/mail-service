@@ -11,25 +11,48 @@ namespace Rumble.Platform.MailboxService.Controllers
     [ApiController, Route(template: "admin"), RequireAuth]
     public class AdminController : PlatformController
     {
+        private readonly InboxService _inboxService;
         private readonly GlobalMessageService _globalMessageService;
 
-        public AdminController(GlobalMessageService globalMessageService, IConfiguration config) : base(config)
+        public AdminController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
         {
+            _inboxService = inboxService;
             _globalMessageService = globalMessageService;
         }
 
         [HttpGet, Route(template: "health"), NoAuth]
         public override ActionResult HealthCheck()
         {
-            return Ok(_globalMessageService.HealthCheckResponseObject);
+            return Ok(_inboxService.HealthCheckResponseObject, _globalMessageService.HealthCheckResponseObject);
         }
 
         [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
         public ActionResult GlobalMessageList()
         {
-            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
+            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages(); // TODO implement
 
-            return Ok(new {GlobalMessages = globalMessages});
+            return Ok(new {GlobalMessages = globalMessages}); // correct structure?
+        }
+
+        [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult MessageSend() // TODO implement
+        {
+            List<string> accountIds = Require<List<string>>(key: "accountIds");
+            // does body have the messages that are to be sent too?
+        }
+
+        [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult GlobalMessageSend() // TODO implement
+        {
+            bool eligibility = Require<bool>(key: "eligibleForNewAccounts");
+            // does body have messages that are to be sent too?
+        }
+
+        [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult GlobalMessageExpire() // TODO implement
+        {
+            string messageId = Require<string>(key: "messageId");
+            // this is probably called by the inboxservice timer?
         }
     }
 }

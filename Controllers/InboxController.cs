@@ -24,15 +24,18 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpGet]
-        public ObjectResult GetInbox()
+        public ObjectResult GetInbox() // TODO implement
         {
-            
+            // the inbox is null for the specific accountId, if no global messages then empty messages is ok
+            // adding global messages will add to specific accountId
+            // or does this imply a single inbox for all users, filtered later?
         }
 
         [HttpPatch, Route(template: "claim")]
-        public ObjectResult Claim()
+        public ObjectResult Claim() // TODO implement
         {
             string messageId = Require<string>(key: "messageId");
+            // also have an accountId in the request?
             if (messageId == null)
             {
                 

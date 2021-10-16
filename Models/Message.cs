@@ -7,7 +7,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
-    public class Message : PlatformCollectionDocument
+    public class Message : PlatformCollectionDocument // PlatformDataModel? component(?) of 
     {
         internal const string DB_KEY_SUBJECT = "sbjct";
         internal const string DB_KEY_BODY = "body";
@@ -64,7 +64,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonIgnore]
         public bool IsExpired => Expiration <= UnixTime;
 
-        public Message(
+        public Message( // possibly no params and use object initializer instead?
             string subject,
             string body,
             List<Attachment> attachments,

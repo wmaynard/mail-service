@@ -1,13 +1,5 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Timers;
-using MongoDB.Driver;
 using Rumble.Platform.MailboxService.Models;
-using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.CSharp.Common.Interop;
 using Rumble.Platform.MailboxService.Models;
 using Timer = System.Timers.Timer;
 
@@ -19,11 +11,11 @@ namespace Rumble.Platform.MailboxService.Services
 
         public InboxService() : base(collection: "inboxes")
         {
-            _inboxTimer = new Timer(interval: int.Parse(RumbleEnvironment.Variable("INBOX_CHECK_FREQUENCY_SECONDS") ?? "10"))
+            _inboxTimer = new Timer(interval: int.Parse(RumbleEnvironment.Variable("INBOX_CHECK_FREQUENCY_SECONDS") ?? "60")) // linter says RumbleEnvironment cannot be resolved. in environment.json for now
             {
                 AutoReset = true
             };
-            _inboxTimer.Elapsed += CheckExpiredInbox;
+            _inboxTimer.Elapsed += CheckExpiredInbox; // TODO implement
             _inboxTimer.Start();
         }
     }
