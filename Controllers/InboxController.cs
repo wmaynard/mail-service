@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Rumble.Platform.Common.Utilities;
@@ -24,22 +25,34 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpGet]
-        public ObjectResult GetInbox() // TODO implement
+        public ObjectResult GetInbox()
         {
-            // the inbox is null for the specific accountId, if no global messages then empty messages is ok
-            // adding global messages will add to specific accountId
-            // or does this imply a single inbox for all users, filtered later?
+            Inbox accountInbox = _inboxService.Get(Token.AccountId);
+            return Ok(accountInbox.ResponseObject);
         }
 
         [HttpPatch, Route(template: "claim")]
         public ObjectResult Claim() // TODO implement
         {
             string messageId = Require<string>(key: "messageId");
-            // also have an accountId in the request?
-            if (messageId == null)
+            Inbox accountInbox = _inboxService.Get(Token.AccountId);
+            if (messageId == null) 
+            { // maybe shouldn't do the logic/work here, but in inboxservice instead? TODO
+                // claim all
+                List<Message> messages = accountInbox.Messages;
+                foreach (Message message in messages)
+                {
+                    message.UpdateClaimed();
+                    _inboxService.Update(accountInbox); // want to try to force update immediately on messages
+                }
+            }
+            else
             {
+                // message has an id? primary key? enum in inbox.messages? TODO
                 
             }
+
+            return Ok(accountInbox.ResponseObject); // response body is the resulting inbox?
         }
     }
 }

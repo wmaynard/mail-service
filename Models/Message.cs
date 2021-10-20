@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.Linq;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Web;
@@ -62,7 +60,7 @@ namespace Rumble.Platform.MailboxService.Models
 
         [BsonIgnore]
         [JsonIgnore]
-        public bool IsExpired => Expiration <= UnixTime;
+        public bool IsExpired => Expiration <= UnixTime; // no setter, current plan is to change expiration to currenttime
 
         public Message( // possibly no params and use object initializer instead?
             string subject,
@@ -82,6 +80,12 @@ namespace Rumble.Platform.MailboxService.Models
             VisibleFrom = visibleFrom;
             Image = image;
             Status = status;
+        }
+
+        public void UpdateClaimed() // goal is to have the message claimed and expired(maybe not necessary if claimed stops another claim attempt?)
+        {
+            this.Status = StatusType.CLAIMED; // probably not right syntax, 'this' might refer to the function instead of message TODO
+            this.Expiration = UnixTime;
         }
 
     }

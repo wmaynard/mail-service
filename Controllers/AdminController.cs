@@ -29,30 +29,35 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
         public ActionResult GlobalMessageList()
         {
-            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages(); // TODO implement
+            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
-            return Ok(new {GlobalMessages = globalMessages}); // correct structure?
+            return Ok(new {GlobalMessages = globalMessages});
         }
 
         [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult MessageSend() // TODO implement
         {
             List<string> accountIds = Require<List<string>>(key: "accountIds");
-            // does body have the messages that are to be sent too?
+            Message message = Require<Message>(key: "message"); // does this exist too in the request body?
+            // need to create the message in inbox for each accountId TODO
+            return Ok(); // response body contains the message sent? TODO fill out
         }
 
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageSend() // TODO implement
         {
             bool eligibility = Require<bool>(key: "eligibleForNewAccounts");
-            // does body have messages that are to be sent too?
+            GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage"); // does this exist too in the request body?
+            // need to create the globalmessage in inbox for all accountids, eligibility included TODO
+            return Ok(); // response body contains the message sent? TODO fill out
         }
 
         [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageExpire() // TODO implement
         {
             string messageId = Require<string>(key: "messageId");
-            // this is probably called by the inboxservice timer?
+            // manually expires the message in question
+            return Ok(); // response body contains the message expired? TODO fill out
         }
     }
 }
