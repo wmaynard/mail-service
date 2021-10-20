@@ -27,7 +27,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpGet]
         public ObjectResult GetInbox()
         {
-            Inbox accountInbox = _inboxService.Get(Token.AccountId);
+            Inbox accountInbox = _inboxService.Get(Token.AccountId); // check null, global messages TODO
             return Ok(accountInbox.ResponseObject);
         }
 
