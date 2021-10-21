@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
@@ -5,7 +6,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
-    public class Message : PlatformCollectionDocument // PlatformDataModel? component(?) of 
+    public class Message : PlatformCollectionDocument
     {
         internal const string DB_KEY_SUBJECT = "sbjct";
         internal const string DB_KEY_BODY = "body";
@@ -82,10 +83,21 @@ namespace Rumble.Platform.MailboxService.Models
             Status = status;
         }
 
-        public void UpdateClaimed() // goal is to have the message claimed and expired(maybe not necessary if claimed stops another claim attempt?)
+        public void Expire() // only actually used for globalmessages, but here to access expiration
         {
-            this.Status = StatusType.CLAIMED; // probably not right syntax, 'this' might refer to the function instead of message TODO
-            this.Expiration = UnixTime;
+            Expiration = UnixTime;
+        }
+
+        public void UpdateClaimed() // message claimed, claimed should stop another claim attempt
+        {
+            if (Status == StatusType.UNCLAIMED)
+            {
+                Status = StatusType.CLAIMED;
+            }
+            else
+            {
+                throw new Exception(message:"Message has already been claimed!");
+            }
         }
 
     }

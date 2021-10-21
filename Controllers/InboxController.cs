@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Rumble.Platform.Common.Utilities;
@@ -12,10 +13,12 @@ namespace Rumble.Platform.MailboxService.Controllers
     public class InboxController : PlatformController
     {
         private readonly InboxService _inboxService;
+        private readonly GlobalMessageService _globalMessageService;
 
-        public InboxController(InboxService inboxService, IConfiguration config) : base(config)
+        public InboxController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
         {
             _inboxService = inboxService;
+            _globalMessageService = globalMessageService;
         }
 
         [HttpGet, Route(template: "health"), NoAuth]
@@ -28,6 +31,19 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult GetInbox()
         {
             Inbox accountInbox = _inboxService.Get(Token.AccountId); // check null, global messages TODO
+            if (accountInbox == null)
+            {
+                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
+                _inboxService.Create(accountInbox);
+            }
+            else
+            {
+                IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
+                foreach (GlobalMessage globalMessage in globalMessages)
+                {
+                    
+                }
+            }
             return Ok(accountInbox.ResponseObject);
         }
 
@@ -37,22 +53,26 @@ namespace Rumble.Platform.MailboxService.Controllers
             string messageId = Require<string>(key: "messageId");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             if (messageId == null) 
-            { // maybe shouldn't do the logic/work here, but in inboxservice instead? TODO
+            {
                 // claim all
                 List<Message> messages = accountInbox.Messages;
                 foreach (Message message in messages)
                 {
                     message.UpdateClaimed();
-                    _inboxService.Update(accountInbox); // want to try to force update immediately on messages
                 }
+                _inboxService.Update(accountInbox); // update only once? or for each message update
             }
             else
             {
-                // message has an id? primary key? enum in inbox.messages? TODO
-                
+                // message has an id from service.Get()
+                // need to work with inbox.messages and claim that specific one TODO fix
+                Message message = _globalMessageService.Get(messageId); 
+                // this currently grabs global message instead of message? but globalmessage : message TODO fix
+                message.UpdateClaimed();
+                _inboxService.Update(accountInbox);
             }
 
-            return Ok(accountInbox.ResponseObject); // response body is the resulting inbox?
+            return Ok(accountInbox.ResponseObject); // response body is the resulting inbox
         }
     }
 }

@@ -38,26 +38,46 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult MessageSend() // TODO implement
         {
             List<string> accountIds = Require<List<string>>(key: "accountIds");
-            Message message = Require<Message>(key: "message"); // does this exist too in the request body?
-            // need to create the message in inbox for each accountId TODO
-            return Ok(); // response body contains the message sent? TODO fill out
+            Message message = Require<Message>(key: "message");
+            // need to add the message in inbox for each accountId
+            foreach (string accountId in accountIds) // possibly refactor to be more efficient
+            {
+                Inbox inbox = _inboxService.Get(accountId);
+                inbox.Messages.Add(message);
+                _inboxService.Update(inbox);
+            }
+            
+            return Ok(message.ResponseObject); // response body contains the message sent
         }
 
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageSend() // TODO implement
         {
-            bool eligibility = Require<bool>(key: "eligibleForNewAccounts");
-            GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage"); // does this exist too in the request body?
-            // need to create the globalmessage in inbox for all accountids, eligibility included TODO
-            return Ok(); // response body contains the message sent? TODO fill out
+            bool eligibleNew = Require<bool>(key: "eligibleForNewAccounts");
+            GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
+            // need to add the globalmessage in inbox for all accountids, eligibility included TODO
+            if (eligibleNew) // put global message in pool to be fetched by anyone
+            {
+                
+            }
+            else // add to existing accounts only
+            {
+                IEnumerable<Inbox> allInboxes = 
+            }
+            return Ok(globalMessage.ResponseObject); // response body contains the message sent
         }
 
         [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageExpire() // TODO implement
         {
             string messageId = Require<string>(key: "messageId");
+
+            GlobalMessage message = _globalMessageService.Get(messageId);
+            message.Expire();
+            _globalMessageService.Update(message);
             // manually expires the message in question
-            return Ok(); // response body contains the message expired? TODO fill out
+            
+            return Ok(message.ResponseObject); // response body contains the message expired
         }
     }
 }

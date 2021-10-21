@@ -13,11 +13,9 @@ namespace Rumble.Platform.MailboxService.Services
     {
         private readonly Timer _inboxTimer;
 
-        public Inbox inbox;
-
-        public void UpdateExpired()
+        public void DeleteExpired(Inbox inbox) // deletes old expired messages TODO fix
         {
-            long timestamp = Message.UnixTime; // again model to get unixtime..
+            long timestamp = Inbox.UnixTime; // again model to get unixtime..
             List<Message> expiredMessages = inbox.Messages.Where(message => message.VisibleFrom < timestamp && message.Expiration > timestamp).ToList();
             foreach (Message expiredMessage in expiredMessages)
             {
@@ -30,19 +28,19 @@ namespace Rumble.Platform.MailboxService.Services
             _inboxTimer.Start();
             try
             {
-                Log.Local(Owner.Nathan, message:"Attempt to update expired messages...");
-                UpdateExpired();
+                Log.Local(Owner.Nathan, message:"Attempt to delete expired messages...");
+                DeleteExpired();
             }
             catch (Exception e)
             {
-                Log.Local(Owner.Nathan, message:"Failure to update expired messages.", exception: e);
+                Log.Local(Owner.Nathan, message:"Failure to delete expired messages.", exception: e);
             }
             _inboxTimer.Start();
         }
         
         public InboxService() : base(collection: "inboxes")
         {
-            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "60")) // too intermittent?
+            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600")) // check every hour
             {
                 AutoReset = true
             };

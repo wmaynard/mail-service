@@ -42,7 +42,6 @@ namespace Rumble.Platform.MailboxService.Models
             EligibleForNewAccounts = eligibleForNewAccounts;
             Attachment = attachment;
         }
-        
     }
 }
 
