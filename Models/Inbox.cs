@@ -21,22 +21,15 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonProperty(PropertyName = FRIENDLY_KEY_MESSAGES)]
         public List<Message> Messages { get; private set; }
 
-        public Inbox(string aid, List<Message> messages = null, List<GlobalMessage> globalMessages = null) // possibly no params and use object initializer instead?
+        public Inbox(string aid, List<Message> messages) // possibly no params and use object initializer instead?
         {
             AccountId = aid;
             Messages = messages;
         }
 
-        public void UpdateMessages(List<Message> messages = null, List<GlobalMessage> globalMessages = null, bool global = false)
+        public void UpdateMessages(List<Message> messages)
         {
-            if (global)
-            {
-                Messages = globalMessages;
-            }
-            else
-            {
-                Messages = messages;
-            }
+            Messages = messages;
         }
     }
 }

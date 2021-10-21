@@ -30,20 +30,24 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpGet]
         public ObjectResult GetInbox()
         {
-            Inbox accountInbox = _inboxService.Get(Token.AccountId); // check null, global messages TODO
+            IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
+            Inbox accountInbox = _inboxService.Get(Token.AccountId);
             if (accountInbox == null)
             {
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 _inboxService.Create(accountInbox);
-                List<Message> globalMessages = _globalMessageService.GetAllGlobalMessages().ToList();
-                accountInbox.UpdateMessages(globalMessages);
+                accountInbox.UpdateMessages(globalMessages.ToList());
             }
             else
             {
-                IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
-                foreach (GlobalMessage globalMessage in globalMessages)
+                // optimizations could be made here for an algorithm to combine based on what ids are not present in inbox TODO
+                // how to access message ids? service.get?
+                // plan - make an object for the ids of the globalmessages, iterate once through inbox.messages, add missing ones after - O(n + m)
+                // plan - make an object for the ids of the inbox.messages, iterate once through globalmessages, add if missing - O(n + m)
+                // plan - if both are sorted, iterate through and merge - O(n + m) but save a little on memory
+                foreach (Message globalMessage in globalMessages)
                 {
-                    
+                    if ()
                 }
             }
             return Ok(accountInbox.ResponseObject);
