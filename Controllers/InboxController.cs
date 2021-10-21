@@ -35,6 +35,8 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 _inboxService.Create(accountInbox);
+                List<Message> globalMessages = _globalMessageService.GetAllGlobalMessages().ToList();
+                accountInbox.UpdateMessages(globalMessages);
             }
             else
             {

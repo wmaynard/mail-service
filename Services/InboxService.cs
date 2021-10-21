@@ -13,14 +13,14 @@ namespace Rumble.Platform.MailboxService.Services
     {
         private readonly Timer _inboxTimer;
 
-        public void DeleteExpired(Inbox inbox) // deletes old expired messages TODO fix
+        public void DeleteExpired(Inbox inbox) // removes old expired messages
         {
             long timestamp = Inbox.UnixTime; // again model to get unixtime..
-            List<Message> expiredMessages = inbox.Messages.Where(message => message.VisibleFrom < timestamp && message.Expiration > timestamp).ToList();
-            foreach (Message expiredMessage in expiredMessages)
-            {
-                // need to update isExpired? or is this automatic TODO
-            }
+            // perhaps just keep the ones that are not expired and are visible
+            List<Message> unexpiredMessages = inbox.Messages
+                .Where(message => message.VisibleFrom <= timestamp && message.Expiration > timestamp).ToList();
+            inbox.UpdateMessages(unexpiredMessages);
+            Update(inbox);
         }
 
         private void CheckExpiredInbox(object sender, ElapsedEventArgs args) // tbh just guided from chat-service

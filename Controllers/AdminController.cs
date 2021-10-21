@@ -73,10 +73,9 @@ namespace Rumble.Platform.MailboxService.Controllers
             string messageId = Require<string>(key: "messageId");
 
             GlobalMessage message = _globalMessageService.Get(messageId);
-            message.Expire();
+            message.Expire(); // manually expires the message in question
             _globalMessageService.Update(message);
-            // manually expires the message in question
-            
+
             return Ok(message.ResponseObject); // response body contains the message expired
         }
     }
