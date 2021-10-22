@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
@@ -41,16 +42,34 @@ namespace Rumble.Platform.MailboxService.Controllers
             else
             {
                 // optimizations could be made here for an algorithm to combine based on what ids are not present in inbox TODO
-                // how to access message ids? service.get?
-                // plan - make an object for the ids of the globalmessages, iterate once through inbox.messages, add missing ones after - O(n + m)
+                // how to access message ids? message.Id
+                // -> plan - make an object for the ids of the globalmessages, iterate once through inbox.messages, add missing ones after - O(n + m)
                 // plan - make an object for the ids of the inbox.messages, iterate once through globalmessages, add if missing - O(n + m)
                 // plan - if both are sorted, iterate through and merge - O(n + m) but save a little on memory
-                foreach (Message globalMessage in globalMessages)
+                // plan - Enumerable.Union? with a comparer for id - O(?)
+                
+                HashSet<string> globalMessageIds = new HashSet<string>(); // hashset for constant lookup
+                
+                foreach (Message globalMessage in globalMessages) // populating hashset with all global message ids
                 {
-                    if ()
+                    globalMessageIds.Add(globalMessage.Id);
                 }
+
+                foreach (Message inboxMessage in accountInbox.Messages) // getting rid of duplicate global message ids
+                {
+                    if (globalMessageIds.Contains(inboxMessage.Id))
+                    {
+                        globalMessageIds.Remove(inboxMessage.Id);
+                    }
+                }
+
+                foreach (string globalMessageId in globalMessageIds) // adding in new global messages into existing messages list
+                {
+                    accountInbox.Messages.Add(item:_globalMessageService.Get(globalMessageId));
+                }
+                _inboxService.Update(accountInbox);
             }
-            return Ok(accountInbox.ResponseObject);
+            return Ok(accountInbox.ResponseObject); // returns inbox in question
         }
 
         [HttpPatch, Route(template: "claim")]
