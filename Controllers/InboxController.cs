@@ -38,9 +38,19 @@ namespace Rumble.Platform.MailboxService.Controllers
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 _inboxService.Create(accountInbox);
                 accountInbox.UpdateMessages(globalMessages.ToList());
+                // TODO: return early and remove the else statement to reduce nesting
             }
             else
             {
+                // TODO: This needs cleanup.  Add the global messages with LINQ instead of loops.  It's shorter, cleaner, and high-performance.
+                // You will need to do something like this (adding filtering if necessary to make sure global messages only go to eligible accounts):
+                // Message[] globals = _globalMessageService.GetAllGlobalMessages()
+                //     .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
+                //     .Select(message => message)
+                //     .ToArray();
+                // accountInbox.Messages.AddRange(globals);
+                // _inboxService.Update(accountInbox);
+
                 // optimizations could be made here for an algorithm to combine based on what ids are not present in inbox TODO check
                 // how to access message ids? message.Id
                 // -> plan - make an object for the ids of the globalmessages, iterate once through inbox.messages, add missing ones after - O(n + m)
@@ -65,7 +75,7 @@ namespace Rumble.Platform.MailboxService.Controllers
 
                 foreach (string globalMessageId in globalMessageIds) // adding in new global messages into existing messages list
                 {
-                    accountInbox.Messages.Add(item:_globalMessageService.Get(globalMessageId));
+                    accountInbox.Messages.Add(item:_globalMessageService.Get(globalMessageId));  // TODO: This is making extra calls to mongo, but you already have all of the messages available in the method.
                 }
                 _inboxService.Update(accountInbox);
             }
