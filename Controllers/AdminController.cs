@@ -51,11 +51,11 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageSend() // TODO implement
+        public ObjectResult GlobalMessageSend() // TODO check
         {
             bool eligibleNew = Require<bool>(key: "eligibleForNewAccounts");
             GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
-            // need to add the globalmessage in inbox for all accountids, eligibility included TODO check
+            // need to add the globalmessage in inbox for all accountids, eligibility included
             if (eligibleNew) // put global message in pool to be fetched by anyone
             {
                 _globalMessageService.Create(globalMessage);
