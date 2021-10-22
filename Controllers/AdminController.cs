@@ -55,14 +55,19 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             bool eligibleNew = Require<bool>(key: "eligibleForNewAccounts");
             GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
-            // need to add the globalmessage in inbox for all accountids, eligibility included TODO
+            // need to add the globalmessage in inbox for all accountids, eligibility included TODO check
             if (eligibleNew) // put global message in pool to be fetched by anyone
             {
-                
+                _globalMessageService.Create(globalMessage);
             }
             else // add to existing accounts only
             {
-                IEnumerable<Inbox> allInboxes = 
+                IEnumerable<Inbox> allInboxes = _inboxService.List();
+                foreach (Inbox inbox in allInboxes)
+                {
+                    inbox.Messages.Add(globalMessage);
+                    _inboxService.Update(inbox);
+                }
             }
             return Ok(globalMessage.ResponseObject); // response body contains the message sent
         }
