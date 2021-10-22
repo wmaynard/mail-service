@@ -23,7 +23,7 @@ namespace Rumble.Platform.MailboxService.Services
             foreach (Inbox inbox in allInboxes)
             {
                 List<Message> unexpiredMessages = inbox.Messages
-                    .Where(message => message.VisibleFrom <= timestamp && message.Expiration > timestamp).ToList();
+                    .Where(message => message.VisibleFrom <= timestamp && message.Expiration + long.Parse(PlatformEnvironment.Variable(name:"INBOX_DELETE_OLD_SECONDS") ?? "604800")> timestamp).ToList();
                 inbox.UpdateMessages(unexpiredMessages);
                 Update(inbox);
             }
