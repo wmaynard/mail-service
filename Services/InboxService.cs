@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
+using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.Common.Web;
@@ -13,14 +14,19 @@ namespace Rumble.Platform.MailboxService.Services
     {
         private readonly Timer _inboxTimer;
 
-        public void DeleteExpired(Inbox inbox) // removes old expired messages
+        public void DeleteExpired() // removes old expired messages
         {
             long timestamp = Inbox.UnixTime; // again model to get unixtime..
             // perhaps just keep the ones that are not expired and are visible
-            List<Message> unexpiredMessages = inbox.Messages
-                .Where(message => message.VisibleFrom <= timestamp && message.Expiration > timestamp).ToList();
-            inbox.UpdateMessages(unexpiredMessages);
-            Update(inbox);
+            // cleaning all inboxes, maybe not optimal? TODO check
+            IEnumerable<Inbox> allInboxes = List(); // iterating through IEnumerable or list? which is more efficient? TODO check
+            foreach (Inbox inbox in allInboxes)
+            {
+                List<Message> unexpiredMessages = inbox.Messages
+                    .Where(message => message.VisibleFrom <= timestamp && message.Expiration > timestamp).ToList();
+                inbox.UpdateMessages(unexpiredMessages);
+                Update(inbox);
+            }
         }
 
         private void CheckExpiredInbox(object sender, ElapsedEventArgs args) // tbh just guided from chat-service
