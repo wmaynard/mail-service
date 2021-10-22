@@ -41,7 +41,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             else
             {
-                // optimizations could be made here for an algorithm to combine based on what ids are not present in inbox TODO
+                // optimizations could be made here for an algorithm to combine based on what ids are not present in inbox TODO check
                 // how to access message ids? message.Id
                 // -> plan - make an object for the ids of the globalmessages, iterate once through inbox.messages, add missing ones after - O(n + m)
                 // plan - make an object for the ids of the inbox.messages, iterate once through globalmessages, add if missing - O(n + m)
@@ -73,7 +73,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpPatch, Route(template: "claim")]
-        public ObjectResult Claim() // TODO implement
+        public ObjectResult Claim()
         {
             string messageId = Require<string>(key: "messageId");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
@@ -85,19 +85,33 @@ namespace Rumble.Platform.MailboxService.Controllers
                 {
                     message.UpdateClaimed();
                 }
-                _inboxService.Update(accountInbox); // update only once? or for each message update
+                _inboxService.Update(accountInbox);
             }
             else
             {
-                // message has an id from service.Get()
-                // need to work with inbox.messages and claim that specific one TODO fix
-                Message message = _globalMessageService.Get(messageId); 
-                // this currently grabs global message instead of message? but globalmessage : message TODO fix
-                message.UpdateClaimed();
-                _inboxService.Update(accountInbox);
+                // Message message = _globalMessageService.Get(messageId); // this would grab global message instead of message but globalmessage : message?
+                // this implementation seems a little inefficient, TODO refactor
+                Message message = null;
+                for (int i = 0; i < accountInbox.Messages.Count(); i++)
+                {
+                    if (accountInbox.Messages[i].Id == messageId)
+                    {
+                        message = accountInbox.Messages[i];
+                    }
+                }
+                
+                if (message == null)
+                {
+                    throw new Exception(message: "Claimed message was not found.");
+                }
+                else // linter says this is redundant, but this works on a compiler?
+                {
+                    message.UpdateClaimed();
+                    _inboxService.Update(accountInbox);
+                }
             }
 
-            return Ok(accountInbox.ResponseObject); // response body is the resulting inbox
+            return Ok(accountInbox.ResponseObject); // maybe want to return the claimed attachments too TODO check
         }
     }
 }
