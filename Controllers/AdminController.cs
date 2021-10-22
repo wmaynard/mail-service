@@ -29,9 +29,9 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
         public ActionResult GlobalMessageList()
         {
-            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
+            IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
-            return Ok(new {GlobalMessages = globalMessages});
+            return Ok(new {GlobalMessages = globalMessages}); // just an object for now
         }
 
         [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
@@ -40,7 +40,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             List<string> accountIds = Require<List<string>>(key: "accountIds");
             Message message = Require<Message>(key: "message");
             // need to add the message in inbox for each accountId
-            foreach (string accountId in accountIds) // possibly refactor to be more efficient
+            foreach (string accountId in accountIds) // possibly refactor to be more efficient TODO refactor
             {
                 Inbox inbox = _inboxService.Get(accountId);
                 inbox.Messages.Add(message);
