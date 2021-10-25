@@ -50,7 +50,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             return Ok(message.ResponseObject); // response body contains the message sent
         }
 
-        [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
+        [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)] // TODO change this if restructure global message eligibility
         public ObjectResult GlobalMessageSend() // TODO check
         {
             bool eligibleNew = Require<bool>(key: "eligibleForNewAccounts");
