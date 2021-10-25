@@ -31,54 +31,42 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpGet]
         public ObjectResult GetInbox()
         {
-            IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             if (accountInbox == null)
             {
+                IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 _inboxService.Create(accountInbox);
                 accountInbox.UpdateMessages(globalMessages.ToList());
                 // TODO: return early and remove the else statement to reduce nesting
+                return Ok(accountInbox.ResponseObject);
             }
-            else
-            {
-                // TODO: This needs cleanup.  Add the global messages with LINQ instead of loops.  It's shorter, cleaner, and high-performance.
-                // You will need to do something like this (adding filtering if necessary to make sure global messages only go to eligible accounts):
-                // Message[] globals = _globalMessageService.GetAllGlobalMessages()
-                //     .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
-                //     .Select(message => message)
-                //     .ToArray();
-                // accountInbox.Messages.AddRange(globals);
-                // _inboxService.Update(accountInbox);
+            // TODO: This needs cleanup.  Add the global messages with LINQ instead of loops.  It's shorter, cleaner, and high-performance.
+            // You will need to do something like this (adding filtering if necessary to make sure global messages only go to eligible accounts):
+            // Message[] globals = _globalMessageService.GetAllGlobalMessages()
+            //     .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
+            //     .Select(message => message)
+            //     .ToArray();
+            // accountInbox.Messages.AddRange(globals);
+            // _inboxService.Update(accountInbox);
 
-                // optimizations could be made here for an algorithm to combine based on what ids are not present in inbox TODO check
-                // how to access message ids? message.Id
-                // -> plan - make an object for the ids of the globalmessages, iterate once through inbox.messages, add missing ones after - O(n + m)
-                // plan - make an object for the ids of the inbox.messages, iterate once through globalmessages, add if missing - O(n + m)
-                // plan - if both are sorted, iterate through and merge - O(n + m) but save a little on memory
-                // plan - Enumerable.Union? with a comparer for id - O(?)
+            GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages() 
+                // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
+                // no warnings / errors elsewhere due to GetAllGlobalMessages() being changed to globalmessages, should be fine
+                .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
                 
-                HashSet<string> globalMessageIds = new HashSet<string>(); // hashset for constant lookup
+                // currently globals eligible for new accounts are added to collection in mongo, but not eligible are added directly to existing inboxes
+                // then the globals eligible are fetched by the global message service
+                // possible issue is when an account created before message is sent but has not created an inbox yet, they may not receive the global message
+                // could avoid call getinbox() when account is created?
                 
-                foreach (Message globalMessage in globalMessages) // populating hashset with all global message ids
-                {
-                    globalMessageIds.Add(globalMessage.Id);
-                }
-
-                foreach (Message inboxMessage in accountInbox.Messages) // getting rid of duplicate global message ids
-                {
-                    if (globalMessageIds.Contains(inboxMessage.Id))
-                    {
-                        globalMessageIds.Remove(inboxMessage.Id);
-                    }
-                }
-
-                foreach (string globalMessageId in globalMessageIds) // adding in new global messages into existing messages list
-                {
-                    accountInbox.Messages.Add(item:_globalMessageService.Get(globalMessageId));  // TODO: This is making extra calls to mongo, but you already have all of the messages available in the method.
-                }
-                _inboxService.Update(accountInbox);
-            }
+                // meaning structure is inconsistent. no not eligible exist in collection in mongo
+                // probably a better idea to restructure the way this works so structure is consistent, but need a way to tell if account is new TODO decision
+                // .Where(message => message.EligibleForNewAccounts) // somehow to compare to if accounts are new, perhaps visiblefrom < account creation? TODO add in "|| (account is not new)"
+                .Select(message => message)
+                .ToArray();
+            accountInbox.Messages.AddRange(globals);
+            _inboxService.Update(accountInbox);
             return Ok(accountInbox.ResponseObject); // returns inbox in question
         }
 
