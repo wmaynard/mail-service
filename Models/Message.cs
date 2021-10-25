@@ -67,9 +67,7 @@ namespace Rumble.Platform.MailboxService.Models
         // public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
         //     : base(...) // If using a base class' constructor (which you're not in this model) and it can't fit on the same line, it's common to be on a newline and indented. 
         // { ...
-        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom,
-            string image, StatusType status
-        )
+        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
         {
             Subject = subject;
             Body = body;

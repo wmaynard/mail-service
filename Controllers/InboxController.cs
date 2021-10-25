@@ -32,23 +32,16 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult GetInbox()
         {
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
-            if (accountInbox == null)
+            
+            if (accountInbox == null) // means new account?
+            // if restructure for consistency, will need to add in a filter to check for eligibility, details below TODO
             {
                 IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 _inboxService.Create(accountInbox);
                 accountInbox.UpdateMessages(globalMessages.ToList());
-                // TODO: return early and remove the else statement to reduce nesting
                 return Ok(accountInbox.ResponseObject);
             }
-            // TODO: This needs cleanup.  Add the global messages with LINQ instead of loops.  It's shorter, cleaner, and high-performance.
-            // You will need to do something like this (adding filtering if necessary to make sure global messages only go to eligible accounts):
-            // Message[] globals = _globalMessageService.GetAllGlobalMessages()
-            //     .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
-            //     .Select(message => message)
-            //     .ToArray();
-            // accountInbox.Messages.AddRange(globals);
-            // _inboxService.Update(accountInbox);
 
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages() 
                 // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
@@ -109,7 +102,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                 }
             }
 
-            return Ok(accountInbox.ResponseObject); // maybe want to return the claimed attachments too TODO check
+            return Ok(accountInbox.ResponseObject); // maybe want to return the claimed attachments too TODO decision
         }
     }
 }

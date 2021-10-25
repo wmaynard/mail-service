@@ -55,10 +55,6 @@ namespace Rumble.Platform.MailboxService.Services
             _inboxTimer.Start();
         }
         
-        // TODO: You'll need to implement a method to retrieve records by AccountId.  The AccountId is not the same as the MongoDB _id.
-        // Something like: 
-        // public override Inbox Get(string accountId) => _collection.Find(inbox => inbox.AccountId == accountId).FirstOrDefault();
-        // Otherwise, you will end up with a new inbox for the account every time you try and retrieve it.
         public override Inbox Get(string accountId)
         {
             return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();

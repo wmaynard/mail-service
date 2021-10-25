@@ -20,7 +20,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonProperty(PropertyName = FRIENDLY_KEY_ATTACHMENT)]
         public Attachment Attachment { get; private set; }
 
-        public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration, 
+        public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration, // too long
             long visibleFrom, string image, StatusType status, bool eligibleForNewAccounts, Attachment attachment) 
             : base(subject: subject, body: body, attachments: attachments, expiration: expiration, 
                 visibleFrom: visibleFrom, image: image, status: status)
