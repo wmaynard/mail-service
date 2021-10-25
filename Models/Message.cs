@@ -63,6 +63,10 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonIgnore]
         public bool IsExpired => Expiration <= UnixTime; // no setter, current plan is to change expiration to currenttime
 
+        // TODO: This constructor structure is a little odd, having each parameter on its own line.
+        // public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
+        //     : base(...) // If using a base class' constructor (which you're not in this model) and it can't fit on the same line, it's common to be on a newline and indented. 
+        // { ...
         public Message( // possibly no params and use object initializer instead?
             string subject,
             string body,
@@ -90,6 +94,7 @@ namespace Rumble.Platform.MailboxService.Models
 
         public void UpdateClaimed() // message claimed, claimed should stop another claim attempt
         {
+            // TODO: Invert the if statement and remove the else to reduce nesting
             if (Status == StatusType.UNCLAIMED)
             {
                 Status = StatusType.CLAIMED;

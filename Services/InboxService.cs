@@ -46,6 +46,7 @@ namespace Rumble.Platform.MailboxService.Services
         
         public InboxService() : base(collection: "inboxes")
         {
+            // TODO: Timers use MS, so this is actually running every 3.6 seconds
             _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600")) // check every hour
             {
                 AutoReset = true
@@ -53,6 +54,11 @@ namespace Rumble.Platform.MailboxService.Services
             _inboxTimer.Elapsed += CheckExpiredInbox; // TODO check implementation
             _inboxTimer.Start();
         }
+        
+        // TODO: You'll need to implement a method to retrieve records by AccountId.  The AccountId is not the same as the MongoDB _id.
+        // Something like: 
+        // public override Inbox Get(string accountId) => _collection.Find(inbox => inbox.AccountId == accountId).FirstOrDefault();
+        // Otherwise, you will end up with a new inbox for the account every time you try and retrieve it.
     }
 }
 
