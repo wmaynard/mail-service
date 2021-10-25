@@ -80,15 +80,20 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             else
             {
-                // Message message = _globalMessageService.Get(messageId); // this would grab global message instead of message but globalmessage : message?
+                // Message message = _globalMessageService.Get(messageId);
+                // this would grab global message instead of message but globalmessage : message?
+                // need a message service to do this more efficiently?
                 // this implementation seems a little inefficient, TODO refactor
                 Message message = null;
-                for (int i = 0; i < accountInbox.Messages.Count(); i++)
+                int i = 0;
+                while (i < accountInbox.Messages.Count() && message == null)
                 {
                     if (accountInbox.Messages[i].Id == messageId)
                     {
                         message = accountInbox.Messages[i];
                     }
+
+                    i++;
                 }
                 
                 if (message == null)
