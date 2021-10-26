@@ -46,7 +46,6 @@ namespace Rumble.Platform.MailboxService.Services
         
         public InboxService() : base(collection: "inboxes")
         {
-            // TODO: Timers use MS, so this is actually running every 3.6 seconds
             _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600000")) // check every hour
             {
                 AutoReset = true
