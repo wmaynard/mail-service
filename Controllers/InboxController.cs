@@ -29,49 +29,26 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpGet]
-        public ObjectResult GetInbox()
-        
-            // TODO decision to restructure
-            // currently globals eligible for new accounts are added to collection in mongo, but not eligible are added directly to existing inboxes
-            // then the globals eligible are fetched by the global message service
-            // possible issue is when an account created before message is sent but has not created an inbox yet, they may not receive the global message
-            // could avoid call getinbox() when account is created?
-                
-            // meaning structure is inconsistent. no not eligible exist in collection in mongo
-            // probably a better idea to restructure the way this works so structure is consistent, but need a way to tell if account is new TODO decision
-            // also need to change the way ../AdminController.cs POST /global/messages/send route works
-        
-        {
+        public ObjectResult GetInbox() {
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             
-            if (accountInbox == null) // means new account?
+            if (accountInbox == null) // means new account, need to call GetInbox() when account is created
             {
-                // perhaps change this to use LINQ too? will need to if need filter
-                IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
+                GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
+                    .Where(message => message.ForAccountsBefore == null)
+                    .Select(message => message)
+                    .ToArray();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
-                _inboxService.Create(accountInbox);
-                accountInbox.UpdateMessages(globalMessages.ToList()); // perhaps change this to use LINQ too? will need to if need filter
-                return Ok(accountInbox.ResponseObject);
-                
-                // if restructuring TODO
-                // GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
-                //     .Where(message => message.EligibleForNewAccounts) // compare to if accounts are new, perhaps visiblefrom < account creation? "|| (account is not new)"
-                //     .Select(message => message)
-                //     .ToArray();
-                // accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
-                // accountInbox.Messages.AddRange(glboalMessages);
-                // _inboxService.Update(accountInbox);
-                // return Ok(accountInbox.ResponseObject); // returns inbox in question
+                accountInbox.Messages.AddRange(globalMessages);
+                _inboxService.Update(accountInbox);
+                return Ok(accountInbox.ResponseObject); // returns inbox in question
             }
 
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
                 // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
                 // no warnings / errors elsewhere due to GetAllGlobalMessages() being changed to globalmessages, should be fine
                 .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
-                
-                // if restructuring
-                //     .Where(message => message.EligibleForNewAccounts) // compare to if accounts are new, perhaps visiblefrom < account creation? "|| (account is not new)"
-                
+                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp)
                 .Select(message => message)
                 .ToArray();
             accountInbox.Messages.AddRange(globals);
