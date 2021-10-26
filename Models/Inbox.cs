@@ -25,13 +25,13 @@ namespace Rumble.Platform.MailboxService.Models
         
         [BsonElement(DB_KEY_TIMESTAMP)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_TIMESTAMP)]
-        public long? Timestamp { get; private set; }
+        public long Timestamp { get; private set; }
 
-        public Inbox(string aid, List<Message> messages, long? timestamp = null)
+        public Inbox(string aid, List<Message> messages)
         {
             AccountId = aid;
             Messages = messages;
-            Timestamp = timestamp;
+            Timestamp = UnixTime;
         }
 
         public void UpdateMessages(List<Message> messages)
