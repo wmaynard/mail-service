@@ -50,25 +50,11 @@ namespace Rumble.Platform.MailboxService.Controllers
             return Ok(message.ResponseObject); // response body contains the message sent
         }
 
-        [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)] // TODO change this if restructure global message eligibility
-        public ObjectResult GlobalMessageSend() // TODO check
+        [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult GlobalMessageSend()
         {
-            bool eligibleNew = Require<bool>(key: "eligibleForNewAccounts");
             GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
-            // need to add the globalmessage in inbox for all accountids, eligibility included
-            if (eligibleNew) // put global message in pool to be fetched by anyone
-            {
-                _globalMessageService.Create(globalMessage);
-            }
-            else // add to existing accounts only
-            {
-                IEnumerable<Inbox> allInboxes = _inboxService.List();
-                foreach (Inbox inbox in allInboxes)
-                {
-                    inbox.Messages.Add(globalMessage);
-                    _inboxService.Update(inbox);
-                }
-            }
+            _globalMessageService.Create(globalMessage);
             return Ok(globalMessage.ResponseObject); // response body contains the message sent
         }
 
