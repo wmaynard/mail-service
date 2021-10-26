@@ -54,7 +54,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonProperty(PropertyName = FRIENDLY_KEY_IMAGE)]
         public string Image { get; private set; }
         
-        public enum StatusType { CLAIMED, UNCLAIMED }
+        public enum StatusType { UNCLAIMED, CLAIMED }
         [BsonElement(DB_KEY_STATUS)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_STATUS)]
         public StatusType Status { get; private set; }
@@ -82,7 +82,6 @@ namespace Rumble.Platform.MailboxService.Models
 
         public void UpdateClaimed() // message claimed, claimed should stop another claim attempt
         {
-            // TODO: Invert the if statement and remove the else to reduce nesting
             if (Status == StatusType.UNCLAIMED)
             {
                 Status = StatusType.CLAIMED;

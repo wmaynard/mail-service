@@ -40,7 +40,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                     .ToArray();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 accountInbox.Messages.AddRange(globalMessages);
-                _inboxService.Update(accountInbox);
+                _inboxService.Create(accountInbox);
                 return Ok(accountInbox.ResponseObject); // returns inbox in question
             }
 
