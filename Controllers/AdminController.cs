@@ -8,7 +8,7 @@ using Rumble.Platform.MailboxService.Services;
 
 namespace Rumble.Platform.MailboxService.Controllers
 {
-    [ApiController, Route(template: "admin"), RequireAuth]
+    [ApiController, Route(template: "mail/admin"), RequireAuth]
     public class AdminController : PlatformController
     {
         private readonly InboxService _inboxService;
