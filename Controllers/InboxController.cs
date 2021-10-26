@@ -48,7 +48,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                 // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
                 // no warnings / errors elsewhere due to GetAllGlobalMessages() being changed to globalmessages, should be fine
                 .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
-                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp)
+                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
                 .Select(message => message)
                 .ToArray();
             accountInbox.Messages.AddRange(globals);
