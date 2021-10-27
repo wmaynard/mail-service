@@ -8,7 +8,7 @@ using Rumble.Platform.MailboxService.Services;
 
 namespace Rumble.Platform.MailboxService.Controllers
 {
-    [ApiController, Route(template: "admin"), RequireAuth]
+    [ApiController, Route(template: "mail/admin"), RequireAuth]
     public class AdminController : PlatformController
     {
         private readonly InboxService _inboxService;
@@ -29,30 +29,45 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
         public ActionResult GlobalMessageList()
         {
-            IEnumerable<GlobalMessage> globalMessages = _globalMessageService.GetAllGlobalMessages(); // TODO implement
+            IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
-            return Ok(new {GlobalMessages = globalMessages}); // correct structure?
+            return Ok(new {GlobalMessages = globalMessages}); // just an object for now
         }
 
         [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult MessageSend() // TODO implement
+        public ObjectResult MessageSend()
         {
             List<string> accountIds = Require<List<string>>(key: "accountIds");
-            // does body have the messages that are to be sent too?
+            Message message = Require<Message>(key: "message");
+            // need to add the message in inbox for each accountId
+            foreach (string accountId in accountIds) // possibly refactor to be more efficient TODO refactor
+            {
+                Inbox inbox = _inboxService.Get(accountId);
+                inbox.Messages.Add(message);
+                _inboxService.Update(inbox);
+            }
+            
+            return Ok(message.ResponseObject); // response body contains the message sent
         }
 
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageSend() // TODO implement
+        public ObjectResult GlobalMessageSend()
         {
-            bool eligibility = Require<bool>(key: "eligibleForNewAccounts");
-            // does body have messages that are to be sent too?
+            GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
+            _globalMessageService.Create(globalMessage);
+            return Ok(globalMessage.ResponseObject); // response body contains the message sent
         }
 
         [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageExpire() // TODO implement
+        public ObjectResult GlobalMessageExpire() // TODO problem where globals in inboxes do not have their expirations changed
         {
             string messageId = Require<string>(key: "messageId");
-            // this is probably called by the inboxservice timer?
+
+            GlobalMessage message = _globalMessageService.Get(messageId);
+            message.Expire(); // manually expires the message in question
+            _globalMessageService.Update(message);
+
+            return Ok(message.ResponseObject); // response body contains the message expired
         }
     }
 }

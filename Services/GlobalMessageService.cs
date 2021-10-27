@@ -1,5 +1,5 @@
 using System.Collections.Generic;
-using System.Linq;
+using MongoDB.Driver;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
 
@@ -9,10 +9,10 @@ namespace Rumble.Platform.MailboxService.Services
     {
         public GlobalMessageService() : base(collection: "globalMessages") {  }
 
-        public IEnumerable<GlobalMessage> GetAllGlobalMessages() // this seems useful TODO building
+        public IEnumerable<GlobalMessage> GetAllGlobalMessages()
         {
             long timestamp = GlobalMessage.UnixTime;
-            return GlobalMessage.Where(m => m.VisibleFrom < timestamp && m.Expiration > timestamp); // need to make list of global messages instead to use .Where
+            return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList(); // maybe?
         }
     }
 }

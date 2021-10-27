@@ -1,13 +1,13 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
-    public class Message : PlatformCollectionDocument // PlatformDataModel? component(?) of 
+    public class Message : PlatformCollectionDocument
     {
         internal const string DB_KEY_SUBJECT = "sbjct";
         internal const string DB_KEY_BODY = "body";
@@ -55,24 +55,16 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonProperty(PropertyName = FRIENDLY_KEY_IMAGE)]
         public string Image { get; private set; }
         
-        public enum StatusType { CLAIMED, UNCLAIMED }
+        public enum StatusType { UNCLAIMED, CLAIMED }
         [BsonElement(DB_KEY_STATUS)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_STATUS)]
         public StatusType Status { get; private set; }
 
         [BsonIgnore]
         [JsonIgnore]
-        public bool IsExpired => Expiration <= UnixTime;
+        public bool IsExpired => Expiration <= UnixTime; // no setter, current plan is to change expiration to currenttime
 
-        public Message( // possibly no params and use object initializer instead?
-            string subject,
-            string body,
-            List<Attachment> attachments,
-            long expiration,
-            long visibleFrom,
-            string image,
-            StatusType status
-        )
+        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
         {
             Subject = subject;
             Body = body;
@@ -82,8 +74,26 @@ namespace Rumble.Platform.MailboxService.Models
             VisibleFrom = visibleFrom;
             Image = image;
             Status = status;
+            // Id = Guid.NewGuid().ToString(); is not a valid 24 digit hex string.
+            Id = ObjectId.GenerateNewId().ToString();
         }
 
+        public void Expire() // only actually used for globalmessages, but here to access expiration
+        {
+            Expiration = UnixTime;
+        }
+
+        public void UpdateClaimed() // message claimed, claimed should stop another claim attempt
+        {
+            if (Status == StatusType.UNCLAIMED)
+            {
+                Status = StatusType.CLAIMED;
+            }
+            else
+            {
+                throw new Exception(message:"Message has already been claimed!");
+            }
+        }
     }
 }
 

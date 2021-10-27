@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Rumble.Platform.Common.Utilities;
@@ -7,14 +10,16 @@ using Rumble.Platform.MailboxService.Services;
 
 namespace Rumble.Platform.MailboxService.Controllers
 {
-    [ApiController, Route(template: "inbox"), RequireAuth]
+    [ApiController, Route(template: "mail/inbox"), RequireAuth]
     public class InboxController : PlatformController
     {
         private readonly InboxService _inboxService;
+        private readonly GlobalMessageService _globalMessageService;
 
-        public InboxController(InboxService inboxService, IConfiguration config) : base(config)
+        public InboxController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
         {
             _inboxService = inboxService;
+            _globalMessageService = globalMessageService;
         }
 
         [HttpGet, Route(template: "health"), NoAuth]
@@ -24,22 +29,80 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpGet]
-        public ObjectResult GetInbox() // TODO implement
-        {
-            // the inbox is null for the specific accountId, if no global messages then empty messages is ok
-            // adding global messages will add to specific accountId
-            // or does this imply a single inbox for all users, filtered later?
+        public ObjectResult GetInbox() {
+            Inbox accountInbox = _inboxService.Get(Token.AccountId);
+            
+            if (accountInbox == null) // means new account, need to call GetInbox() when account is created
+            {
+                GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
+                    .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
+                    .Select(message => message)
+                    .ToArray();
+                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
+                accountInbox.Messages.AddRange(globalMessages);
+                _inboxService.Create(accountInbox);
+                return Ok(accountInbox.ResponseObject); // returns inbox in question
+            }
+
+            // updating global messages
+            GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
+                // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
+                // no warnings / errors elsewhere due to GetAllGlobalMessages() being changed to globalmessages, should be fine
+                .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
+                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
+                .Select(message => message)
+                .ToArray();
+            accountInbox.Messages.AddRange(globals);
+
+            _inboxService.Update(accountInbox);
+            return Ok(accountInbox.ResponseObject); // returns inbox in question
         }
 
         [HttpPatch, Route(template: "claim")]
-        public ObjectResult Claim() // TODO implement
+        public ObjectResult Claim()
         {
             string messageId = Require<string>(key: "messageId");
-            // also have an accountId in the request?
-            if (messageId == null)
+            Inbox accountInbox = _inboxService.Get(Token.AccountId);
+            if (messageId == null) 
             {
-                
+                // claim all
+                List<Message> messages = accountInbox.Messages;
+                foreach (Message message in messages)
+                {
+                    message.UpdateClaimed();
+                }
+                _inboxService.Update(accountInbox);
             }
+            else
+            {
+                // Message message = _globalMessageService.Get(messageId);
+                // this would grab global message instead of message but globalmessage : message?
+                // need a message service to do this more efficiently?
+                // this implementation seems a little inefficient, TODO refactor
+                Message message = null;
+                int i = 0;
+                while (i < accountInbox.Messages.Count() && message == null)
+                {
+                    if (accountInbox.Messages[i].Id == messageId)
+                    {
+                        message = accountInbox.Messages[i];
+                    }
+
+                    i++;
+                }
+                
+                if (message == null)
+                {
+                    throw new Exception(message: "Claimed message was not found.");
+                }
+                else // linter says this is redundant, but this works on a compiler?
+                {
+                    message.UpdateClaimed();
+                    _inboxService.Update(accountInbox);
+                }
+            }
+
+            return Ok(accountInbox.ResponseObject); // maybe want to return the claimed attachments too TODO decision
         }
     }
 }
