@@ -34,13 +34,13 @@ namespace Rumble.Platform.MailboxService.Models
         {
             Attachment = attachment;
             ForAccountsBefore = forAccountsBefore;
-            base.UpdateBase(subject: subject, body: body, attachments: attachments, expiration: expiration, 
+            UpdateBase(subject: subject, body: body, attachments: attachments, expiration: expiration, 
                 visibleFrom: visibleFrom, image: image, status: status);
         }
 
         public void ExpireGlobal()
         {
-            base.ExpireBase();
+            ExpireBase();
         }
     }
 }

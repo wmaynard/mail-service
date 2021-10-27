@@ -17,6 +17,7 @@ namespace Rumble.Platform.MailboxService.Models
         internal const string DB_KEY_VISIBLE_FROM = "visible";
         internal const string DB_KEY_IMAGE = "img";
         internal const string DB_KEY_STATUS = "status";
+        internal const string DB_KEY_PREVIOUS_VERSIONS = "prev";
 
         public const string FRIENDLY_KEY_SUBJECT = "subject";
         public const string FRIENDLY_KEY_BODY = "body";
@@ -26,6 +27,7 @@ namespace Rumble.Platform.MailboxService.Models
         public const string FRIENDLY_KEY_VISIBLE_FROM = "visibleFrom";
         public const string FRIENDLY_KEY_IMAGE = "image";
         public const string FRIENDLY_KEY_STATUS = "status";
+        public const string FRIENDLY_KEY_PREVIOUS_VERSIONS = "previousVersions";
 
         [BsonElement(DB_KEY_SUBJECT)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_SUBJECT)]
@@ -59,6 +61,10 @@ namespace Rumble.Platform.MailboxService.Models
         [BsonElement(DB_KEY_STATUS)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_STATUS)]
         public StatusType Status { get; private set; }
+        
+        [BsonElement(DB_KEY_PREVIOUS_VERSIONS), BsonIgnoreIfNull]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_PREVIOUS_VERSIONS)]
+        public List<Message> PreviousVersions { get; private set; }
 
         [BsonIgnore]
         [JsonIgnore]
@@ -74,6 +80,7 @@ namespace Rumble.Platform.MailboxService.Models
             VisibleFrom = visibleFrom;
             Image = image;
             Status = status;
+            PreviousVersions = new List<Message>();
             // Id = Guid.NewGuid().ToString(); is not a valid 24 digit hex string.
             Id = ObjectId.GenerateNewId().ToString();
         }
@@ -106,6 +113,11 @@ namespace Rumble.Platform.MailboxService.Models
             {
                 throw new Exception(message:"Message has already been claimed!");
             }
+        }
+
+        public void UpdatePrevious(Message message)
+        {
+            PreviousVersions.Add(message);
         }
     }
 }

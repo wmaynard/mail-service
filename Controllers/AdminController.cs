@@ -63,6 +63,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);
+            message.UpdatePrevious(message);
             
             string subject = Optional<string>(key: "subject") ?? message.Subject;
             string body = Optional<string>(key: "body") ?? message.Body;
@@ -88,6 +89,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             string messageId = Require<string>(key: "messageId");
 
             GlobalMessage message = _globalMessageService.Get(messageId);
+            message.UpdatePrevious(message);
             message.ExpireGlobal(); // manually expires the message in question
             _globalMessageService.Update(message);
 
