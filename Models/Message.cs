@@ -92,6 +92,10 @@ namespace Rumble.Platform.MailboxService.Models
             }
         }
 
+        internal void UpdateId() // set id
+        {
+            Id = Guid.NewGuid().ToString();
+        }
     }
 }
 
