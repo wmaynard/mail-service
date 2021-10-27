@@ -35,7 +35,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult MessageSend()
+        public ObjectResult MessageSend() // TODO problem where messages have a null id, cannot claim by id
         {
             List<string> accountIds = Require<List<string>>(key: "accountIds");
             Message message = Require<Message>(key: "message");
@@ -59,7 +59,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageExpire()
+        public ObjectResult GlobalMessageExpire() // TODO problem where globals in inboxes do not have their expirations changed
         {
             string messageId = Require<string>(key: "messageId");
 

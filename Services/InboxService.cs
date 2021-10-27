@@ -18,7 +18,7 @@ namespace Rumble.Platform.MailboxService.Services
         {
             long timestamp = Inbox.UnixTime; // again model to get unixtime..
             // perhaps just keep the ones that are not expired and are visible
-            // cleaning all inboxes, maybe not optimal? TODO check
+            // TODO problem where this pulls all inboxes at once
             IEnumerable<Inbox> allInboxes = List(); // iterating through IEnumerable or list? which is more efficient? TODO check
             foreach (Inbox inbox in allInboxes)
             {
