@@ -35,7 +35,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             if (accountInbox == null) // means new account, need to call GetInbox() when account is created
             {
                 GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
-                    .Where(message => message.ForAccountsBefore == null)
+                    .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                     .Select(message => message)
                     .ToArray();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
