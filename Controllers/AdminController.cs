@@ -58,13 +58,37 @@ namespace Rumble.Platform.MailboxService.Controllers
             return Ok(globalMessage.ResponseObject); // response body contains the message sent
         }
 
+        [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult GlobalMessageEdit() // TODO problem where globals in inboxes do not have their properties changed
+        {
+            string messageId = Require<string>(key: "messageId");
+            GlobalMessage message = _globalMessageService.Get(messageId);
+            
+            string subject = Optional<string>(key: "subject") ?? message.Subject;
+            string body = Optional<string>(key: "body") ?? message.Body;
+            List<Attachment> attachments = Optional<List<Attachment>>(key: "attachments") ?? message.Attachments;
+            long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
+            long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
+            string image = Optional<string>(key: "image") ?? message.Image;
+            Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
+            Attachment attachment = Optional<Attachment>(key: "attachment") ?? message.Attachment;
+            long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
+            
+            message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
+                image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
+            
+            _globalMessageService.Update(message);
+
+            return Ok(message.ResponseObject);
+        }
+
         [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageExpire() // TODO problem where globals in inboxes do not have their expirations changed
         {
             string messageId = Require<string>(key: "messageId");
 
             GlobalMessage message = _globalMessageService.Get(messageId);
-            message.Expire(); // manually expires the message in question
+            message.ExpireGlobal(); // manually expires the message in question
             _globalMessageService.Update(message);
 
             return Ok(message.ResponseObject); // response body contains the message expired

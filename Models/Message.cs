@@ -77,8 +77,21 @@ namespace Rumble.Platform.MailboxService.Models
             // Id = Guid.NewGuid().ToString(); is not a valid 24 digit hex string.
             Id = ObjectId.GenerateNewId().ToString();
         }
+        
+        public void UpdateBase(string subject, string body, List<Attachment> attachments, long expiration,
+            long visibleFrom, string image, StatusType status)
+        {
+            Subject = subject;
+            Body = body;
+            Attachments = attachments;
+            Timestamp = UnixTime;
+            Expiration = expiration;
+            VisibleFrom = visibleFrom;
+            Image = image;
+            Status = status;
+        }
 
-        public void Expire() // only actually used for globalmessages, but here to access expiration
+        public void ExpireBase() // only actually used for globalmessages, but here to access expiration
         {
             Expiration = UnixTime;
         }
