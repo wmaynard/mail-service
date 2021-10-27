@@ -9,9 +9,9 @@ namespace Rumble.Platform.MailboxService.Services
     {
         public GlobalMessageService() : base(collection: "globalMessages") {  }
 
-        public IEnumerable<GlobalMessage> GetAllGlobalMessages() // this seems useful
+        public IEnumerable<GlobalMessage> GetAllGlobalMessages()
         {
-            long timestamp = GlobalMessage.UnixTime; // model to get UnixTime from platformcollectiondocument. is this strange?
+            long timestamp = GlobalMessage.UnixTime;
             return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList(); // maybe?
         }
     }

@@ -43,7 +43,15 @@ namespace Rumble.Platform.MailboxService.Controllers
                 _inboxService.Create(accountInbox);
                 return Ok(accountInbox.ResponseObject); // returns inbox in question
             }
+            
+            // removing expired messages in inbox
+            long timestamp = Inbox.UnixTime;
+            // just keep the ones that are not expired and are visible
+            List<Message> unexpiredMessages = accountInbox.Messages
+                .Where(message => message.VisibleFrom <= timestamp && message.Expiration + long.Parse(PlatformEnvironment.Variable(name:"INBOX_DELETE_OLD_SECONDS") ?? "604800000") > timestamp).ToList();
+            accountInbox.UpdateMessages(unexpiredMessages);
 
+            // updating global messages
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
                 // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
                 // no warnings / errors elsewhere due to GetAllGlobalMessages() being changed to globalmessages, should be fine
@@ -52,6 +60,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                 .Select(message => message)
                 .ToArray();
             accountInbox.Messages.AddRange(globals);
+
             _inboxService.Update(accountInbox);
             return Ok(accountInbox.ResponseObject); // returns inbox in question
         }
