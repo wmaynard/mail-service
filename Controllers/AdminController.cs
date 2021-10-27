@@ -35,7 +35,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult MessageSend() // TODO problem where messages have a null id, cannot claim by id
+        public ObjectResult MessageSend()
         {
             List<string> accountIds = Require<List<string>>(key: "accountIds");
             Message message = Require<Message>(key: "message");

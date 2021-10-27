@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Web;
@@ -73,7 +74,8 @@ namespace Rumble.Platform.MailboxService.Models
             VisibleFrom = visibleFrom;
             Image = image;
             Status = status;
-            Id = Guid.NewGuid().ToString();
+            // Id = Guid.NewGuid().ToString(); is not a valid 24 digit hex string.
+            Id = ObjectId.GenerateNewId().ToString();
         }
 
         public void Expire() // only actually used for globalmessages, but here to access expiration
