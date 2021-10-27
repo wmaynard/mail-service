@@ -36,7 +36,9 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
                     .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
+                    .Where(message => !message.IsExpired)
                     .Select(message => message)
+                    .OrderBy(message => message.Expiration)
                     .ToArray();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 accountInbox.Messages.AddRange(globalMessages);
@@ -53,6 +55,14 @@ namespace Rumble.Platform.MailboxService.Controllers
                 .Select(message => message)
                 .ToArray();
             accountInbox.Messages.AddRange(globals);
+            
+            List<Message> filteredMessages = accountInbox.Messages
+                .Where(message => !message.IsExpired)
+                .Select(message => message)
+                .OrderBy(message => message.Expiration)
+                .ToList();
+            
+            accountInbox.UpdateMessages(filteredMessages); 
 
             _inboxService.Update(accountInbox);
             return Ok(accountInbox.ResponseObject); // returns inbox in question
