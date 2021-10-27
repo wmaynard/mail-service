@@ -43,13 +43,6 @@ namespace Rumble.Platform.MailboxService.Controllers
                 _inboxService.Create(accountInbox);
                 return Ok(accountInbox.ResponseObject); // returns inbox in question
             }
-            
-            // removing expired messages in inbox
-            long timestamp = Inbox.UnixTime;
-            // just keep the ones that are not expired and are visible
-            List<Message> unexpiredMessages = accountInbox.Messages
-                .Where(message => message.VisibleFrom <= timestamp && message.Expiration + long.Parse(PlatformEnvironment.Variable(name:"INBOX_DELETE_OLD_SECONDS") ?? "604800000") > timestamp).ToList();
-            accountInbox.UpdateMessages(unexpiredMessages);
 
             // updating global messages
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
