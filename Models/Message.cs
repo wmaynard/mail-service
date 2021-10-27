@@ -73,6 +73,7 @@ namespace Rumble.Platform.MailboxService.Models
             VisibleFrom = visibleFrom;
             Image = image;
             Status = status;
+            Id = Guid.NewGuid().ToString();
         }
 
         public void Expire() // only actually used for globalmessages, but here to access expiration
@@ -90,11 +91,6 @@ namespace Rumble.Platform.MailboxService.Models
             {
                 throw new Exception(message:"Message has already been claimed!");
             }
-        }
-
-        internal void UpdateId() // set id
-        {
-            Id = Guid.NewGuid().ToString();
         }
     }
 }
