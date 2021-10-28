@@ -70,7 +70,6 @@ namespace Rumble.Platform.MailboxService.Services
             FilterDefinition<BsonDocument> filter = new BsonDocument(name:"Id", id);
             UpdateDefinition<BsonDocument> update = new BsonDocument(name: "$set", value: new BsonDocument(name:"Expiration", Inbox.UnixTime));
             _collection.UpdateMany(filter: filter, update: update);
-            _collection.UpdateMany()
         }
     }
 }
