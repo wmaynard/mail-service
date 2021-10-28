@@ -119,6 +119,7 @@ namespace Rumble.Platform.MailboxService.Models
         {
             PreviousVersions.Add(message);
         }
+        
     }
 }
 

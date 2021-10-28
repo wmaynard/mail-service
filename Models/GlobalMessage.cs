@@ -42,6 +42,21 @@ namespace Rumble.Platform.MailboxService.Models
         {
             ExpireBase();
         }
+        
+        public static GlobalMessage CreateCopy(GlobalMessage message)
+        {
+            string subject = message.Subject;
+            string body = message.Body;
+            List<Attachment> attachments = message.Attachments;
+            long expiration = message.Expiration;
+            long visibleFrom = message.VisibleFrom;
+            string image = message.Image;
+            Message.StatusType status = message.Status;
+            Attachment attachment = message.Attachment;
+            long? forAccountsBefore = message.ForAccountsBefore;
+            return new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
+                image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
+        }
     }
 }
 
