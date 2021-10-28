@@ -47,7 +47,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                 _inboxService.Update(inbox);
             }
             
-            return Ok(message.ResponseObject); // response body contains the message sent
+            return Ok(message.ResponseObject);
         }
 
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
@@ -55,7 +55,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
             _globalMessageService.Create(globalMessage);
-            return Ok(globalMessage.ResponseObject); // response body contains the message sent
+            return Ok(globalMessage.ResponseObject);
         }
 
         [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(TokenType.ADMIN)]
@@ -95,10 +95,10 @@ namespace Rumble.Platform.MailboxService.Controllers
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
             message.UpdatePrevious(copy);
             
-            message.ExpireGlobal(); // manually expires the message in question
+            message.ExpireGlobal();
             _globalMessageService.Update(message);
 
-            return Ok(message.ResponseObject); // response body contains the message expired
+            return Ok(message.ResponseObject);
         }
     }
 }
@@ -113,5 +113,7 @@ namespace Rumble.Platform.MailboxService.Controllers
 //   - body should contain an array of accountIds
 // - POST /mail/admin/global/messages/send
 //   - body should contain a bool for eligibleForNewAccounts
+// - PATCH /mail/admin/global/messages/edit
+//   - body should contain a messageId and all parameters
 // - PATCH /mail/admin/global/messages/expire
 //   - body should contain a messageId

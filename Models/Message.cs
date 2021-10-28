@@ -68,7 +68,7 @@ namespace Rumble.Platform.MailboxService.Models
 
         [BsonIgnore]
         [JsonIgnore]
-        public bool IsExpired => Expiration <= UnixTime; // no setter, current plan is to change expiration to currenttime
+        public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
         public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
         {
@@ -81,8 +81,7 @@ namespace Rumble.Platform.MailboxService.Models
             Image = image;
             Status = status;
             PreviousVersions = new List<Message>();
-            // Id = Guid.NewGuid().ToString(); is not a valid 24 digit hex string.
-            Id = ObjectId.GenerateNewId().ToString();
+            Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
         }
         
         public void UpdateBase(string subject, string body, List<Attachment> attachments, long expiration,
@@ -98,12 +97,12 @@ namespace Rumble.Platform.MailboxService.Models
             Status = status;
         }
 
-        public void ExpireBase() // only actually used for globalmessages, but here to access expiration
+        public void ExpireBase()
         {
             Expiration = UnixTime;
         }
 
-        public void UpdateClaimed() // message claimed, claimed should stop another claim attempt
+        public void UpdateClaimed()
         {
             if (Status == StatusType.UNCLAIMED)
             {
@@ -111,7 +110,7 @@ namespace Rumble.Platform.MailboxService.Models
             }
             else
             {
-                throw new Exception(message:"Message has already been claimed!");
+                throw new Exception(message:"Message has already been claimed!"); // TODO convert to PlatformMongoException
             }
         }
 
