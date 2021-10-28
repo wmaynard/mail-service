@@ -58,6 +58,11 @@ namespace Rumble.Platform.MailboxService.Services
         {
             return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
         }
+
+        public void UpdateAll()
+        {
+            // TODO implement to query db
+        }
     }
 }
 

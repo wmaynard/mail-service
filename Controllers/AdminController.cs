@@ -80,6 +80,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
                 image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
             
+            _inboxService.UpdateAll();
             _globalMessageService.Update(message);
 
             return Ok(message.ResponseObject);
@@ -89,13 +90,14 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult GlobalMessageExpire() // TODO problem where globals in inboxes do not have their expirations changed
         {
             string messageId = Require<string>(key: "messageId");
-
             GlobalMessage message = _globalMessageService.Get(messageId);
             
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
             message.UpdatePrevious(copy);
             
             message.ExpireGlobal();
+            
+            _inboxService.UpdateAll();
             _globalMessageService.Update(message);
 
             return Ok(message.ResponseObject);
