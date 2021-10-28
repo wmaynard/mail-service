@@ -80,7 +80,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
                 image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
             
-            _inboxService.UpdateAll();
+            _inboxService.UpdateAll(id: messageId);
             _globalMessageService.Update(message);
 
             return Ok(message.ResponseObject);
@@ -97,7 +97,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             
             message.ExpireGlobal();
             
-            _inboxService.UpdateAll();
+            _inboxService.UpdateExpiration(id: messageId);
             _globalMessageService.Update(message);
 
             return Ok(message.ResponseObject);

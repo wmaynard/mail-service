@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
@@ -59,9 +60,17 @@ namespace Rumble.Platform.MailboxService.Services
             return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
         }
 
-        public void UpdateAll()
+        public void UpdateAll(string id)
         {
-            // TODO implement to query db
+            _collection.UpdateMany();
+        }
+
+        public void UpdateExpiration(string id)
+        {
+            FilterDefinition<BsonDocument> filter = new BsonDocument(name:"Id", id);
+            UpdateDefinition<BsonDocument> update = new BsonDocument(name: "$set", value: new BsonDocument(name:"Expiration", Inbox.UnixTime));
+            _collection.UpdateMany(filter: filter, update: update);
+            _collection.UpdateMany()
         }
     }
 }
