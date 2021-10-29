@@ -36,26 +36,34 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
                     .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
+                    .Where(message => !message.IsExpired)
                     .Select(message => message)
+                    .OrderBy(message => message.Expiration)
                     .ToArray();
                 accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
                 accountInbox.Messages.AddRange(globalMessages);
                 _inboxService.Create(accountInbox);
-                return Ok(accountInbox.ResponseObject); // returns inbox in question
+                return Ok(accountInbox.ResponseObject);
             }
 
             // updating global messages
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
-                // global message to avoid warning: Co-variant array conversion from GlobalMessage[] to Message[] can cause run-time exception on write operation
-                // no warnings / errors elsewhere due to GetAllGlobalMessages() being changed to globalmessages, should be fine
                 .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
                 .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
                 .Select(message => message)
                 .ToArray();
             accountInbox.Messages.AddRange(globals);
+            
+            List<Message> filteredMessages = accountInbox.Messages
+                .Where(message => !message.IsExpired)
+                .Select(message => message)
+                .OrderBy(message => message.Expiration)
+                .ToList();
+            
+            accountInbox.UpdateMessages(filteredMessages); 
 
             _inboxService.Update(accountInbox);
-            return Ok(accountInbox.ResponseObject); // returns inbox in question
+            return Ok(accountInbox.ResponseObject);
         }
 
         [HttpPatch, Route(template: "claim")]
@@ -75,6 +83,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             else
             {
+                // claim one
                 // Message message = _globalMessageService.Get(messageId);
                 // this would grab global message instead of message but globalmessage : message?
                 // need a message service to do this more efficiently?
@@ -93,16 +102,16 @@ namespace Rumble.Platform.MailboxService.Controllers
                 
                 if (message == null)
                 {
-                    throw new Exception(message: "Claimed message was not found.");
+                    throw new Exception(message: "Claimed message was not found."); // TODO convert to PlatformMongoException
                 }
-                else // linter says this is redundant, but this works on a compiler?
+                else
                 {
                     message.UpdateClaimed();
                     _inboxService.Update(accountInbox);
                 }
             }
 
-            return Ok(accountInbox.ResponseObject); // maybe want to return the claimed attachments too TODO decision
+            return Ok(accountInbox.ResponseObject);
         }
     }
 }

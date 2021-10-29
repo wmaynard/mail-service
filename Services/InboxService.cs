@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Timers;
+using MongoDB.Bson;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
@@ -16,10 +17,10 @@ namespace Rumble.Platform.MailboxService.Services
 
         public void DeleteExpired() // removes old expired messages
         {
-            long timestamp = Inbox.UnixTime; // again model to get unixtime..
+            long timestamp = Inbox.UnixTime;
             // perhaps just keep the ones that are not expired and are visible
             // TODO problem where this pulls all inboxes at once, look into Mongo C# driver
-            IEnumerable<Inbox> allInboxes = List(); // iterating through IEnumerable or list? which is more efficient? TODO check
+            IEnumerable<Inbox> allInboxes = List();
             foreach (Inbox inbox in allInboxes)
             {
                 List<Message> unexpiredMessages = inbox.Messages
@@ -29,7 +30,7 @@ namespace Rumble.Platform.MailboxService.Services
             }
         }
 
-        private void CheckExpiredInbox(object sender, ElapsedEventArgs args) // tbh just guided from chat-service
+        private void CheckExpiredInbox(object sender, ElapsedEventArgs args)
         {
             _inboxTimer.Start();
             try
@@ -50,13 +51,35 @@ namespace Rumble.Platform.MailboxService.Services
             {
                 AutoReset = true
             };
-            _inboxTimer.Elapsed += CheckExpiredInbox; // TODO check implementation
+            _inboxTimer.Elapsed += CheckExpiredInbox;
             _inboxTimer.Start();
         }
         
         public override Inbox Get(string accountId)
         {
             return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
+        }
+
+        public void UpdateAll(string id, GlobalMessage edited)
+        {
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
+            
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            _collection.BulkWrite(listWrites);
+        }
+
+        public void UpdateExpiration(string id)
+        {
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            _collection.BulkWrite(listWrites);
         }
     }
 }

@@ -17,6 +17,7 @@ namespace Rumble.Platform.MailboxService.Models
         internal const string DB_KEY_VISIBLE_FROM = "visible";
         internal const string DB_KEY_IMAGE = "img";
         internal const string DB_KEY_STATUS = "status";
+        internal const string DB_KEY_PREVIOUS_VERSIONS = "prev";
 
         public const string FRIENDLY_KEY_SUBJECT = "subject";
         public const string FRIENDLY_KEY_BODY = "body";
@@ -26,6 +27,7 @@ namespace Rumble.Platform.MailboxService.Models
         public const string FRIENDLY_KEY_VISIBLE_FROM = "visibleFrom";
         public const string FRIENDLY_KEY_IMAGE = "image";
         public const string FRIENDLY_KEY_STATUS = "status";
+        public const string FRIENDLY_KEY_PREVIOUS_VERSIONS = "previousVersions";
 
         [BsonElement(DB_KEY_SUBJECT)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_SUBJECT)]
@@ -59,10 +61,14 @@ namespace Rumble.Platform.MailboxService.Models
         [BsonElement(DB_KEY_STATUS)]
         [JsonProperty(PropertyName = FRIENDLY_KEY_STATUS)]
         public StatusType Status { get; private set; }
+        
+        [BsonElement(DB_KEY_PREVIOUS_VERSIONS), BsonIgnoreIfNull]
+        [JsonProperty(PropertyName = FRIENDLY_KEY_PREVIOUS_VERSIONS)]
+        public List<Message> PreviousVersions { get; private set; }
 
         [BsonIgnore]
         [JsonIgnore]
-        public bool IsExpired => Expiration <= UnixTime; // no setter, current plan is to change expiration to currenttime
+        public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
         public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
         {
@@ -74,16 +80,29 @@ namespace Rumble.Platform.MailboxService.Models
             VisibleFrom = visibleFrom;
             Image = image;
             Status = status;
-            // Id = Guid.NewGuid().ToString(); is not a valid 24 digit hex string.
-            Id = ObjectId.GenerateNewId().ToString();
+            PreviousVersions = new List<Message>();
+            Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
+        }
+        
+        public void UpdateBase(string subject, string body, List<Attachment> attachments, long expiration,
+            long visibleFrom, string image, StatusType status)
+        {
+            Subject = subject;
+            Body = body;
+            Attachments = attachments;
+            Timestamp = UnixTime;
+            Expiration = expiration;
+            VisibleFrom = visibleFrom;
+            Image = image;
+            Status = status;
         }
 
-        public void Expire() // only actually used for globalmessages, but here to access expiration
+        public void ExpireBase()
         {
             Expiration = UnixTime;
         }
 
-        public void UpdateClaimed() // message claimed, claimed should stop another claim attempt
+        public void UpdateClaimed()
         {
             if (Status == StatusType.UNCLAIMED)
             {
@@ -91,9 +110,28 @@ namespace Rumble.Platform.MailboxService.Models
             }
             else
             {
-                throw new Exception(message:"Message has already been claimed!");
+                throw new Exception(message:"Message has already been claimed!"); // TODO convert to PlatformMongoException
             }
         }
+
+        public void RemovePrevious()
+        {
+            PreviousVersions = null;
+        }
+
+        public void UpdatePrevious(Message message)
+        {
+            List<Message> oldPrevious = message.PreviousVersions;
+            message.RemovePrevious();
+            oldPrevious.Add(message);
+            PreviousVersions.AddRange(oldPrevious);
+        }
+
+        public void SetId(string id)
+        {
+            Id = id;
+        }
+        
     }
 }
 
