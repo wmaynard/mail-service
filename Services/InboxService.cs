@@ -60,9 +60,15 @@ namespace Rumble.Platform.MailboxService.Services
             return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
         }
 
-        public void UpdateAll(string id)
+        public void UpdateAll(string id, GlobalMessage edited)
         {
-            //_collection.UpdateMany();
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
+            
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            _collection.BulkWrite(listWrites);
         }
 
         public void UpdateExpiration(string id)
@@ -70,18 +76,10 @@ namespace Rumble.Platform.MailboxService.Services
             List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
             
             FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
-            
             UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
 
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-
-            //FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.Empty; // if OOPS ACCIDENTALLY MESSED UP DOCUMENT
-            //listWrites.Add(new DeleteOneModel<Inbox>(filter)); // then DELETE INBOX AND START AGAIN :(
-
             _collection.BulkWrite(listWrites);
-
-            //_collection.UpdateMany(filter: filter, update: update);
-
         }
     }
 }

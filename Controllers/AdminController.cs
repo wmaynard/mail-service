@@ -59,7 +59,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         }
 
         [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageEdit() // TODO problem where globals in inboxes do not have their properties changed
+        public ObjectResult GlobalMessageEdit()
         {
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);
@@ -76,18 +76,18 @@ namespace Rumble.Platform.MailboxService.Controllers
             Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
             Attachment attachment = Optional<Attachment>(key: "attachment") ?? message.Attachment;
             long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
-            
+
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
                 image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
             
-            _inboxService.UpdateAll(id: messageId);
+            _inboxService.UpdateAll(id: messageId, edited: message);
             _globalMessageService.Update(message);
 
             return Ok(message.ResponseObject);
         }
 
         [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageExpire() // TODO problem where globals in inboxes do not have their expirations changed
+        public ObjectResult GlobalMessageExpire()
         {
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);

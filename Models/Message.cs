@@ -118,6 +118,11 @@ namespace Rumble.Platform.MailboxService.Models
         {
             PreviousVersions.Add(message);
         }
+
+        public void SetId(string id)
+        {
+            Id = id;
+        }
         
     }
 }

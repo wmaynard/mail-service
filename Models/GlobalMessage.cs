@@ -51,11 +51,13 @@ namespace Rumble.Platform.MailboxService.Models
             long expiration = message.Expiration;
             long visibleFrom = message.VisibleFrom;
             string image = message.Image;
-            Message.StatusType status = message.Status;
+            StatusType status = message.Status;
             Attachment attachment = message.Attachment;
             long? forAccountsBefore = message.ForAccountsBefore;
-            return new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
+            GlobalMessage copy = new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
                 image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
+            copy.SetId(message.Id);
+            return copy;
         }
     }
 }
