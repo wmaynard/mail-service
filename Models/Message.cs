@@ -114,9 +114,17 @@ namespace Rumble.Platform.MailboxService.Models
             }
         }
 
+        public void RemovePrevious()
+        {
+            PreviousVersions = null;
+        }
+
         public void UpdatePrevious(Message message)
         {
-            PreviousVersions.Add(message);
+            List<Message> oldPrevious = message.PreviousVersions;
+            message.RemovePrevious();
+            oldPrevious.Add(message);
+            PreviousVersions.AddRange(oldPrevious);
         }
 
         public void SetId(string id)
