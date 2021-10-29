@@ -62,14 +62,26 @@ namespace Rumble.Platform.MailboxService.Services
 
         public void UpdateAll(string id)
         {
-            _collection.UpdateMany();
+            //_collection.UpdateMany();
         }
 
         public void UpdateExpiration(string id)
         {
-            FilterDefinition<BsonDocument> filter = new BsonDocument(name:"Id", id);
-            UpdateDefinition<BsonDocument> update = new BsonDocument(name: "$set", value: new BsonDocument(name:"Expiration", Inbox.UnixTime));
-            _collection.UpdateMany(filter: filter, update: update);
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
+            
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+
+            //FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.Empty; // if OOPS ACCIDENTALLY MESSED UP DOCUMENT
+            //listWrites.Add(new DeleteOneModel<Inbox>(filter)); // then DELETE INBOX AND START AGAIN :(
+
+            _collection.BulkWrite(listWrites);
+
+            //_collection.UpdateMany(filter: filter, update: update);
+
         }
     }
 }
