@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -40,13 +41,14 @@ namespace Rumble.Platform.MailboxService.Controllers
             List<string> accountIds = Require<List<string>>(key: "accountIds");
             Message message = Require<Message>(key: "message");
             // need to add the message in inbox for each accountId
-            foreach (string accountId in accountIds) // possibly refactor to be more efficient TODO refactor
+            try
             {
-                Inbox inbox = _inboxService.Get(accountId);
-                inbox.Messages.Add(message);
-                _inboxService.Update(inbox);
+                _inboxService.SendTo(accountIds: accountIds, message: message);
             }
-            
+            catch (Exception)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Message {message} could not be sent to accounts {accountIds}.");
+            }
             return Ok(message.ResponseObject);
         }
 
@@ -64,9 +66,15 @@ namespace Rumble.Platform.MailboxService.Controllers
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);
             
+            if (message == null)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Global message {messageId} not found while attempting to edit.");
+                return Problem(detail: $"Global message {messageId} not found.");
+            }
+            
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
             message.UpdatePrevious(copy);
-            
+            // incorrect format for following inputs should default to previous entry
             string subject = Optional<string>(key: "subject") ?? message.Subject;
             string body = Optional<string>(key: "body") ?? message.Body;
             List<Attachment> attachments = Optional<List<Attachment>>(key: "attachments") ?? message.Attachments;
@@ -91,15 +99,20 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);
-            
+
+            if (message == null)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Global message {messageId} not found while attempting to expire.");
+                return Problem(detail: $"Global message {messageId} was not found.");
+            }
+
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
             message.UpdatePrevious(copy);
-            
+        
             message.ExpireGlobal();
-            
+        
             _inboxService.UpdateExpiration(id: messageId);
             _globalMessageService.Update(message);
-
             return Ok(message.ResponseObject);
         }
     }
@@ -116,6 +129,6 @@ namespace Rumble.Platform.MailboxService.Controllers
 // - POST /mail/admin/global/messages/send
 //   - body should contain a bool for eligibleForNewAccounts
 // - PATCH /mail/admin/global/messages/edit
-//   - body should contain a messageId and all parameters
+//   - body should contain a messageId and all parameters, incorrect parameter types are ignored
 // - PATCH /mail/admin/global/messages/expire
 //   - body should contain a messageId

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -34,6 +35,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             
             if (accountInbox == null) // means new account, need to call GetInbox() when account is created
             {
+                Log.Info(Owner.Nathan, message: $"Creating inbox for accountId {Token.AccountId}.");
                 GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
                     .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                     .Where(message => !message.IsExpired)
@@ -47,12 +49,20 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
 
             // updating global messages
+            Log.Info(Owner.Nathan, message: $"Updating inbox for accountId {Token.AccountId}.");
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
                 .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
                 .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
                 .Select(message => message)
                 .ToArray();
-            accountInbox.Messages.AddRange(globals);
+            try
+            {
+                accountInbox.Messages.AddRange(globals);
+            }
+            catch (Exception e)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Error while trying to add globals to account {Token.AccountId}. Inbox may be malformed.");
+            }
             
             List<Message> filteredMessages = accountInbox.Messages
                 .Where(message => !message.IsExpired)
@@ -73,41 +83,39 @@ namespace Rumble.Platform.MailboxService.Controllers
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             if (messageId == null) 
             {
+                Log.Info(Owner.Nathan, message: $"Claiming all messages in inbox for accountId {Token.AccountId}.");
                 // claim all
                 List<Message> messages = accountInbox.Messages;
                 foreach (Message message in messages)
                 {
-                    message.UpdateClaimed();
+                    try
+                    {
+                        message.UpdateClaimed();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(Owner.Nathan, message: e.Message);
+                    }
                 }
                 _inboxService.Update(accountInbox);
             }
             else
             {
                 // claim one
-                // Message message = _globalMessageService.Get(messageId);
-                // this would grab global message instead of message but globalmessage : message?
-                // need a message service to do this more efficiently?
-                // this implementation seems a little inefficient, TODO refactor
-                Message message = null;
-                int i = 0;
-                while (i < accountInbox.Messages.Count() && message == null)
+                Log.Info(Owner.Nathan, message: $"Attempting to claim message {messageId} for accountId {Token.AccountId}.");
+                Message message = accountInbox.Messages.Find(message => message.Id == messageId);
+                try
                 {
-                    if (accountInbox.Messages[i].Id == messageId)
+                    if (message == null)
                     {
-                        message = accountInbox.Messages[i];
+                        throw new Exception(message: $"Message {messageId} was not found while attempting to claim for accountId {Token.AccountId}.)");
                     }
-
-                    i++;
-                }
-                
-                if (message == null)
-                {
-                    throw new Exception(message: "Claimed message was not found."); // TODO convert to PlatformMongoException
-                }
-                else
-                {
                     message.UpdateClaimed();
                     _inboxService.Update(accountInbox);
+                }
+                catch (Exception e)
+                {
+                    Log.Error(Owner.Nathan, message: e.Message);
                 }
             }
 

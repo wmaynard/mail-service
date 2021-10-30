@@ -15,19 +15,21 @@ namespace Rumble.Platform.MailboxService.Services
     {
         private readonly Timer _inboxTimer;
 
-        public void DeleteExpired() // removes old expired messages
+        public void DeleteExpired() // removes old expired messages in inboxes
         {
-            long timestamp = Inbox.UnixTime;
-            // perhaps just keep the ones that are not expired and are visible
-            // TODO problem where this pulls all inboxes at once, look into Mongo C# driver
-            IEnumerable<Inbox> allInboxes = List();
-            foreach (Inbox inbox in allInboxes)
-            {
-                List<Message> unexpiredMessages = inbox.Messages
-                    .Where(message => message.VisibleFrom <= timestamp && message.Expiration + long.Parse(PlatformEnvironment.Variable(name:"INBOX_DELETE_OLD_SECONDS") ?? "604800000")> timestamp).ToList();
-                inbox.UpdateMessages(unexpiredMessages);
-                Update(inbox);
-            }
+            //just keeping the ones that are not expired and are visible
+            Log.Local(Owner.Nathan, message:"Attempt to delete expired messages...");
+            // currently not deleting global messages to keep more logs, shouldn't be large enough to need to delete on timer
+            long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable(name: "INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
+            
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > expireTime);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, message => message.Expiration > expireTime);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+
+            _collection.BulkWrite(listWrites);
         }
 
         private void CheckExpiredInbox(object sender, ElapsedEventArgs args)
@@ -35,19 +37,19 @@ namespace Rumble.Platform.MailboxService.Services
             _inboxTimer.Start();
             try
             {
-                Log.Local(Owner.Nathan, message:"Attempt to delete expired messages...");
+                Log.Info(Owner.Nathan, message:"Attempting to check expired messages...");
                 DeleteExpired();
             }
             catch (Exception e)
             {
-                Log.Local(Owner.Nathan, message:"Failure to delete expired messages.", exception: e);
+                Log.Error(Owner.Nathan, message:"Failure to check expired messages.", exception: e);
             }
             _inboxTimer.Start();
         }
         
         public InboxService() : base(collection: "inboxes")
         {
-            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600000")) // check every hour
+            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600") * 1000) // check every hour
             {
                 AutoReset = true
             };
@@ -64,7 +66,7 @@ namespace Rumble.Platform.MailboxService.Services
         {
             List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
             
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
             UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
             
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
@@ -75,8 +77,19 @@ namespace Rumble.Platform.MailboxService.Services
         {
             List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
             
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, messages => messages.Id == id);
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
             UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            _collection.BulkWrite(listWrites);
+        }
+
+        public void SendTo(List<string> accountIds, Message message)
+        {
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, message);
 
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
             _collection.BulkWrite(listWrites);
