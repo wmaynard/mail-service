@@ -110,7 +110,7 @@ namespace Rumble.Platform.MailboxService.Models
             }
             else
             {
-                throw new Exception(message:"Message has already been claimed!"); // TODO convert to PlatformMongoException
+                throw new Exception(message:$"Message {Id} has already been claimed!");
             }
         }
 
