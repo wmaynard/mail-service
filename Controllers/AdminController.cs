@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -40,13 +41,14 @@ namespace Rumble.Platform.MailboxService.Controllers
             List<string> accountIds = Require<List<string>>(key: "accountIds");
             Message message = Require<Message>(key: "message");
             // need to add the message in inbox for each accountId
-            foreach (string accountId in accountIds) // possibly refactor to be more efficient TODO refactor
+            try
             {
-                Inbox inbox = _inboxService.Get(accountId);
-                inbox.Messages.Add(message);
-                _inboxService.Update(inbox);
+                _inboxService.SendTo(accountIds: accountIds, message: message);
             }
-            
+            catch (Exception)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Message {message} could not be sent to accounts {accountIds}.");
+            }
             return Ok(message.ResponseObject);
         }
 

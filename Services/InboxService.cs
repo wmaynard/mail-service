@@ -83,6 +83,17 @@ namespace Rumble.Platform.MailboxService.Services
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
             _collection.BulkWrite(listWrites);
         }
+
+        public void SendTo(List<string> accountIds, Message message)
+        {
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+            
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, message);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            _collection.BulkWrite(listWrites);
+        }
     }
 }
 
