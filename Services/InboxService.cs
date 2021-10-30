@@ -37,12 +37,12 @@ namespace Rumble.Platform.MailboxService.Services
             _inboxTimer.Start();
             try
             {
-                Log.Local(Owner.Nathan, message:"Attempt to check expired messages...");
+                Log.Info(Owner.Nathan, message:"Attempting to check expired messages...");
                 DeleteExpired();
             }
             catch (Exception e)
             {
-                Log.Local(Owner.Nathan, message:"Failure to check expired messages.", exception: e);
+                Log.Error(Owner.Nathan, message:"Failure to check expired messages.", exception: e);
             }
             _inboxTimer.Start();
         }

@@ -68,8 +68,8 @@ namespace Rumble.Platform.MailboxService.Controllers
             
             if (message == null)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Message {messageId} not found while attempting to edit.");
-                return Problem(detail: $"Message {messageId} not found.");
+                Log.Error(owner: Owner.Nathan, message: $"Global message {messageId} not found while attempting to edit.");
+                return Problem(detail: $"Global message {messageId} not found.");
             }
             
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
@@ -102,8 +102,8 @@ namespace Rumble.Platform.MailboxService.Controllers
 
             if (message == null)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Message {messageId} not found while attempting to expire.");
-                return Problem(detail: $"Message {messageId} was not found.");
+                Log.Error(owner: Owner.Nathan, message: $"Global message {messageId} not found while attempting to expire.");
+                return Problem(detail: $"Global message {messageId} was not found.");
             }
 
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
@@ -129,6 +129,6 @@ namespace Rumble.Platform.MailboxService.Controllers
 // - POST /mail/admin/global/messages/send
 //   - body should contain a bool for eligibleForNewAccounts
 // - PATCH /mail/admin/global/messages/edit
-//   - body should contain a messageId and all parameters
+//   - body should contain a messageId and all parameters, incorrect parameter types are ignored
 // - PATCH /mail/admin/global/messages/expire
 //   - body should contain a messageId
