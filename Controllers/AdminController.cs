@@ -66,9 +66,15 @@ namespace Rumble.Platform.MailboxService.Controllers
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);
             
+            if (message == null)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Message {messageId} not found while attempting to edit.");
+                return Problem(detail: $"Message {messageId} not found.");
+            }
+            
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
             message.UpdatePrevious(copy);
-            
+            // incorrect format for following inputs should default to previous entry
             string subject = Optional<string>(key: "subject") ?? message.Subject;
             string body = Optional<string>(key: "body") ?? message.Body;
             List<Attachment> attachments = Optional<List<Attachment>>(key: "attachments") ?? message.Attachments;
@@ -93,15 +99,20 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             string messageId = Require<string>(key: "messageId");
             GlobalMessage message = _globalMessageService.Get(messageId);
-            
+
+            if (message == null)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Message {messageId} not found while attempting to expire.");
+                return Problem(detail: $"Message {messageId} was not found.");
+            }
+
             GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
             message.UpdatePrevious(copy);
-            
+        
             message.ExpireGlobal();
-            
+        
             _inboxService.UpdateExpiration(id: messageId);
             _globalMessageService.Update(message);
-
             return Ok(message.ResponseObject);
         }
     }
