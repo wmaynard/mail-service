@@ -79,7 +79,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpPatch, Route(template: "claim")]
         public ObjectResult Claim()
         {
-            string messageId = Require<string>(key: "messageId");
+            string messageId = Optional<string>(key: "messageId");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             if (messageId == null) 
             {
