@@ -23,7 +23,7 @@ namespace Rumble.Platform.MailboxService.Models
         public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
             long visibleFrom, string image, StatusType status, Attachment attachment, long? forAccountsBefore = null) 
             : base(subject: subject, body: body, attachments: attachments, expiration: expiration, 
-                visibleFrom: visibleFrom, image: image, status: status)
+                visibleFrom: visibleFrom, image: image)
         {
             Attachment = attachment; // optional attachments? also attachments already in messages
             ForAccountsBefore = forAccountsBefore;
