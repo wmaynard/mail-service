@@ -1,6 +1,6 @@
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json;
 
 namespace Rumble.Platform.MailboxService.Models
 {
@@ -13,11 +13,11 @@ namespace Rumble.Platform.MailboxService.Models
         public const string FRIENDLY_KEY_ATTACHMENT = "attachment";
         
         [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
         public long? ForAccountsBefore { get; private set; }
         
         [BsonElement(DB_KEY_ATTACHMENT)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_ATTACHMENT)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ATTACHMENT)]
         public Attachment Attachment { get; private set; }
 
         public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
