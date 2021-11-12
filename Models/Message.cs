@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
@@ -30,40 +30,40 @@ namespace Rumble.Platform.MailboxService.Models
         public const string FRIENDLY_KEY_PREVIOUS_VERSIONS = "previousVersions";
 
         [BsonElement(DB_KEY_SUBJECT)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_SUBJECT)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT)]
         public string Subject { get; private set; }
         
         [BsonElement(DB_KEY_BODY)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_BODY)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_BODY)]
         public string Body { get; private set; }
         
         [BsonElement(DB_KEY_ATTACHMENTS)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_ATTACHMENTS)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ATTACHMENTS)]
         public List<Attachment> Attachments { get; private set;}
         
         [BsonElement(DB_KEY_TIMESTAMP)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_TIMESTAMP)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
         public long Timestamp { get; private set; }
         
         [BsonElement(DB_KEY_EXPIRATION)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_EXPIRATION)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_EXPIRATION)]
         public long Expiration { get; private set; }
         
         [BsonElement(DB_KEY_VISIBLE_FROM)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_VISIBLE_FROM)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VISIBLE_FROM)]
         public long VisibleFrom { get; private set; }
         
         [BsonElement(DB_KEY_IMAGE)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_IMAGE)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_IMAGE)]
         public string Image { get; private set; }
         
         public enum StatusType { UNCLAIMED, CLAIMED }
         [BsonElement(DB_KEY_STATUS)]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_STATUS)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_STATUS)]
         public StatusType Status { get; private set; }
         
         [BsonElement(DB_KEY_PREVIOUS_VERSIONS), BsonIgnoreIfNull]
-        [JsonProperty(PropertyName = FRIENDLY_KEY_PREVIOUS_VERSIONS)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PREVIOUS_VERSIONS)]
         public List<Message> PreviousVersions { get; private set; }
 
         [BsonIgnore]
