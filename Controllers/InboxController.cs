@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Hosting.Internal;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -51,7 +52,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             // updating global messages
             Log.Info(Owner.Nathan, message: $"Updating inbox for accountId {Token.AccountId}.");
             GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
-                .Where(message => !accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id))
+                .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
                 .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
                 .Select(message => message)
                 .ToArray();
@@ -69,8 +70,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                 .Select(message => message)
                 .OrderBy(message => message.Expiration)
                 .ToList();
-            
-            accountInbox.UpdateMessages(filteredMessages); 
+            accountInbox.UpdateMessages(filteredMessages);
 
             _inboxService.Update(accountInbox);
             return Ok(accountInbox.ResponseObject);
@@ -81,6 +81,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             string messageId = Optional<string>(key: "messageId");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
+            List<Attachment> claimed = new List<Attachment>();
             if (messageId == null) 
             {
                 Log.Info(Owner.Nathan, message: $"Claiming all messages in inbox for accountId {Token.AccountId}.");
@@ -91,6 +92,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                     try
                     {
                         message.UpdateClaimed();
+                        claimed.AddRange(message.Attachments);
                     }
                     catch (Exception e)
                     {
@@ -111,15 +113,16 @@ namespace Rumble.Platform.MailboxService.Controllers
                         throw new Exception(message: $"Message {messageId} was not found while attempting to claim for accountId {Token.AccountId}.)");
                     }
                     message.UpdateClaimed();
+                    claimed.AddRange(message.Attachments);
                     _inboxService.Update(accountInbox);
                 }
                 catch (Exception e)
                 {
                     Log.Error(Owner.Nathan, message: e.Message);
+                    return Problem(e.Message);
                 }
             }
-
-            return Ok(accountInbox.ResponseObject);
+            return Ok(accountInbox.ResponseObject, new {claimed = claimed});
         }
     }
 }

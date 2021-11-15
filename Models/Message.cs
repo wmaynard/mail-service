@@ -70,7 +70,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonIgnore]
         public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
-        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image)
+        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
         {
             Subject = subject;
             Body = body;
@@ -79,7 +79,7 @@ namespace Rumble.Platform.MailboxService.Models
             Expiration = expiration;
             VisibleFrom = visibleFrom;
             Image = image;
-            Status = StatusType.UNCLAIMED;
+            Status = status;
             PreviousVersions = new List<Message>();
             Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
         }
