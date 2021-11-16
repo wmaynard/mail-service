@@ -52,7 +52,6 @@ cleaned up from the database after a specific amount of time determined by an en
 | Image | A link to an `image` that may be displayed with the `message`. |
 | Status | Signifies if a `message` is either `UNCLAIMED` or `CLAIMED`. |
 | Previous Versions | In the event that a `global message` is `edited` or manually `expired`, previous versions of the `message` are recorded for logging purposes. |
-| Attachment | Specifically for `global messages`, an additional special `attachment` may be included. |
 | ForAccountsBefore | Specifically for `global messages`, this gives admins the ability to only send `global messages` to `inboxes` created before a specific time formatted in `Unix Time`. This can be `null` to allow eligibility for all. |
 | Claim | Action that allows a user to `claim` any `UNCLAIMED` `messages` in their `inbox`. |
 | Send | Action that allows an admin to send new `messages` or `global messages` to users. |
@@ -103,8 +102,18 @@ All non-health endpoints require a valid admin token.
 | PATCH | `/global/messages/expire` | _Deletes_ a `global message` by manually expiring it. The `global message` will remain in MongoDB until cleaned up. | *string*`messageId` |  |
 
 ### Notes
+An `attachment` has two required properties: an *int* `Quantity` and a *string* `Type`.
+
+**`Attachment` Example**:
+```
+{
+    "Quantity": 100,
+    "Type": "gold"
+}
+```
+
 Expired `global messages` are currently not fetched. In the future, perhaps there may be an optional parameter in the request body allowing for such `global messages` to be fetched.
-To supply a `message` or a `global message` to be sent out, all fields must be present and filled in.
+To supply a `message` or a `global message` to be sent out, all fields must be present and filled in, with the exception of `attachments`.
 
 **`Message` Example**:
 ```
@@ -130,7 +139,10 @@ A `message` has a `timestamp` property automatically set to the current time as 
     "globalMessage": {
         "subject": "Test",
         "body": "Test body",
-        "attachments": [],
+        "attachments": [
+            {"Quantity": 200, "Type": "gem"},
+            {"Quantity": 5000, "Type": "gold"}
+        ],
         "expiration": 1635563500,
         "visibleFrom": 1635550000,
         "image": "testimage",
@@ -148,8 +160,8 @@ the `status` field, the accepted values are `UNCLAIMED` or `CLAIMED`. Any invali
 Changes to the `global message` are reflected upon all copies in all `inbox` collections.
 
 # Future Updates
-- The current `Attachment` model is empty. Any required specifications for this model can be filled out when requested.
-- If admins wish to be able to fetch expired `global messages`, it is possible to allow an optional parameter to do so.
+- The current `Attachment` model is basic. Any required specifications for this model can be filled out when needed.
+- If admins wish to be able to fetch expired `global messages`, it is possible to implement an optional parameter to do so.
 
 # Troubleshooting
 - Any issues should be recorded as a log in Loggly. Please reach out if something does not work property to figure out the issue.

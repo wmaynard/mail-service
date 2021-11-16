@@ -12,7 +12,7 @@ namespace Rumble.Platform.MailboxService.Services
         public IEnumerable<GlobalMessage> GetAllGlobalMessages()
         {
             long timestamp = GlobalMessage.UnixTime;
-            return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList(); // maybe?
+            return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList();
         }
     }
 }

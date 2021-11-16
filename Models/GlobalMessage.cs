@@ -13,11 +13,11 @@ namespace Rumble.Platform.MailboxService.Models
         [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
         public long? ForAccountsBefore { get; private set; }
-
+        
         public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
             long visibleFrom, string image, StatusType status, long? forAccountsBefore = null) 
             : base(subject: subject, body: body, attachments: attachments, expiration: expiration, 
-                visibleFrom: visibleFrom, image: image)
+                visibleFrom: visibleFrom, image: image, status: status)
         {
             ForAccountsBefore = forAccountsBefore;
         }
