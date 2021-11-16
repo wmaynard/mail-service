@@ -99,7 +99,7 @@ All non-health endpoints require a valid admin token.
 | GET | `/admin/global/messages` | Fetches all active `global messages`. |  |  |
 | POST | `/messages/send` | Sends a `message` to a list of `accountIds`. | *List*<*string*>`accountIds`<br />*Message*`message` |  |
 | POST | `/global/messages/send` | Sends a `global message` to be fetched by all eligible users. | *GlobalMessage*`globalMessage` |  |
-| PATCH | `/global/messages/edit` | Updates any applicable fields for a `global message`. | *string*`messageId` | *string*`subject`<br />*string*`body`<br />*List*<*Attachment*>`attachments`<br />*long*`expiration`<br />*long*`visibleFrom`<br />*string*`image`<br />*StatusType*`status`<br />*Attachment*`attachment`<br />*long*`forAccountsBefore` |
+| PATCH | `/global/messages/edit` | Updates any applicable fields for a `global message`. | *string*`messageId` | *string*`subject`<br />*string*`body`<br />*List*<*Attachment*>`attachments`<br />*long*`expiration`<br />*long*`visibleFrom`<br />*string*`image`<br />*StatusType*`status`<br />*long*`forAccountsBefore` |
 | PATCH | `/global/messages/expire` | _Deletes_ a `global message` by manually expiring it. The `global message` will remain in MongoDB until cleaned up. | *string*`messageId` |  |
 
 ### Notes
@@ -134,7 +134,6 @@ A `message` has a `timestamp` property automatically set to the current time as 
         "expiration": 1635563500,
         "visibleFrom": 1635550000,
         "image": "testimage",
-        "attachment": {},
         "forAccountsBefore": null
     }
 }
