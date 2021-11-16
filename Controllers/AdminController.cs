@@ -82,11 +82,10 @@ namespace Rumble.Platform.MailboxService.Controllers
             long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
             string image = Optional<string>(key: "image") ?? message.Image;
             Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
-            Attachment attachment = Optional<Attachment>(key: "attachment") ?? message.Attachment;
             long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
 
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
-                image: image, status: status, attachment: attachment, forAccountsBefore: forAccountsBefore);
+                image: image, status: status, forAccountsBefore: forAccountsBefore);
             
             _inboxService.UpdateAll(id: messageId, edited: message);
             _globalMessageService.Update(message);
