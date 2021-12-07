@@ -2,25 +2,25 @@
 A service for in-game mailbox functionality.
 
 # Introduction
-This service allows for managing player inboxes, messages, and global messages. These messages can be fetched,
-claimed, or expired from a player perspective. An admin may perform more actions, including sending messages. In
-addition, global messages may be sent, edited, or manually expired by an admin. If a message is edited or expired in 
-this fashion, a record of previous versions of this message is stored for logging purposes.
+This service allows for managing player `inboxes`, `messages`, and `global messages`. These `messages` can be `fetched`,
+`claimed`, or `expired` from a player perspective. An admin may perform more actions, including `sending` `messages`. In
+addition, `global messages` may be `sent`, `edited`, or manually `expired` by an admin. If a message is `edited` or `expired` in 
+this fashion, a record of previous versions of this `message` is stored for logging purposes.
 
-A message is a directed specifically to a user or group of users. This can include a subject, body, attachments, an
-expiration time, and an image if applicable. Global messages have the additional optional eligibility and attachment properties.
+A `message` is directed specifically to a user or group of users. This can include a `subject`, `body`, `attachments`, an
+`expiration time`, and an `image` if applicable. `Global messages` have the additional optional `eligibility` property.
 
-Inboxes are attached to a player account by account ID and contain all relevant messages for that player. This should
-be instantiated at the same time that the player account is created for the purposes of global message eligibility.
-There are currently no limitations for how many messages may be stored, but expired messages will be routinely
+`Inboxes` are attached to a player account by `account ID` and contain all relevant `messages` for that player. This should
+be instantiated at the same time that the player account is created for the purposes of `global message` `eligibility`.
+There are currently no limitations for how many `messages` may be stored, but `expired messages` will be routinely
 cleaned up from the database after a specific amount of time determined by an environment variable.
 
 # Required Environment Variables
 | Variable | Description |
 | ---: | :--- |
-| GRAPHITE | Link to hosted graphite for analytics and monitoring. |
-| LOGGLY_URL | Link to Loggly to analyze logs in greater detail. |
-| MONGODB_NAME | The MongoDB name which the service connects to. |
+| GRAPHITE | Link to hosted _graphite_ for analytics and monitoring. |
+| LOGGLY_URL | Link to _Loggly_ to analyze logs in greater detail. |
+| MONGODB_NAME | The _MongoDB_ name which the service connects to. |
 | MONGODB_URI | The connection string for the environment's MongoDB. |
 | RUMBLE_COMPONENT | The name of the service. |
 | RUMBLE_DEPLOYMENT | Signifies the deployment environment. |
@@ -164,4 +164,4 @@ Changes to the `global message` are reflected upon all copies in all `inbox` col
 - If admins wish to be able to fetch expired `global messages`, it is possible to implement an optional parameter to do so.
 
 # Troubleshooting
-- Any issues should be recorded as a log in Loggly. Please reach out if something does not work property to figure out the issue.
+- Any issues should be recorded as a log in _Loggly_. Please reach out if something does not work property to figure out the issue.
