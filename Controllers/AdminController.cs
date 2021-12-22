@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Rumble.Platform.Common.Utilities;
@@ -39,8 +41,31 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult MessageSend()
         {
             List<string> accountIds = Require<List<string>>(key: "accountIds");
-            Message message = Require<Message>(key: "message");
+            
+            // following modification needed because something in update to platform-common made it not pull values correctly for attachments
+            // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+            object messageData = Require<object>(key: "message");
+            string attachmentsString = messageData.ToString();
+            int stringStart = attachmentsString.IndexOf("attachments\":[") + 14;
+            int stringEnd = attachmentsString.IndexOf("],\"expiration");
+            string attachmentsSubstring = attachmentsString.Substring(stringStart, stringEnd - stringStart);
+            string[] attachmentsSplit = attachmentsSubstring.Split(",");
+            List<Attachment> attachments = new List<Attachment>();
+            for (int i = 0; i < attachmentsSplit.Length / 2; i++)
+            {
+                string quantityString = attachmentsSplit[2 * i];
+                int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
+                string typeString = attachmentsSplit[2 * i + 1];
+                string type = typeString.Substring(8, typeString.Length - 10);
+                
+                Attachment attachment = new Attachment(quantity: quantity, type: type);
+                attachments.Add(attachment);
+            }
+            
             // need to add the message in inbox for each accountId
+            Message message = Require<Message>(key: "message");
+            message.UpdateAttachments(attachments);
+            
             try
             {
                 _inboxService.SendTo(accountIds: accountIds, message: message);
@@ -55,7 +80,30 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageSend()
         {
+            // following modification needed because something in update to platform-common made it not pull values correctly for attachments
+            // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+            object messageData = Require<object>(key: "globalMessage");
+            string attachmentsString = messageData.ToString();
+            int stringStart = attachmentsString.IndexOf("attachments\":[") + 14;
+            int stringEnd = attachmentsString.IndexOf("],\"expiration");
+            string attachmentsSubstring = attachmentsString.Substring(stringStart, stringEnd - stringStart);
+            string[] attachmentsSplit = attachmentsSubstring.Split(",");
+            List<Attachment> attachments = new List<Attachment>();
+            for (int i = 0; i < attachmentsSplit.Length / 2; i++)
+            {
+                string quantityString = attachmentsSplit[2 * i];
+                int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
+                string typeString = attachmentsSplit[2 * i + 1];
+                string type = typeString.Substring(8, typeString.Length - 10);
+                
+                Attachment attachment = new Attachment(quantity: quantity, type: type);
+                attachments.Add(attachment);
+            }
+            
+            // need to add the message in inbox for each accountId
             GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
+            globalMessage.UpdateAttachments(attachments);
+
             _globalMessageService.Create(globalMessage);
             return Ok(globalMessage.ResponseObject);
         }

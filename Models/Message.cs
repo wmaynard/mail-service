@@ -114,6 +114,11 @@ namespace Rumble.Platform.MailboxService.Models
             }
         }
 
+        public void UpdateAttachments(List<Attachment> attachments)
+        {
+            Attachments = attachments;
+        }
+
         public void RemovePrevious()
         {
             PreviousVersions = null;

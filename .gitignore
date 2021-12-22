@@ -4,4 +4,4 @@
 nuget.config
 environment.json
 *.cache
-obj/Debug/net5.0/mailbox-service.GeneratedMSBuildEditorConfig.editorconfig
+.idea
