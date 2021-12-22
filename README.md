@@ -161,6 +161,7 @@ Changes to the `global message` are reflected upon all copies in all `inbox` col
 
 # Future Updates
 - The current `Attachment` model is basic. Any required specifications for this model can be filled out when needed.
+- Claiming a message does not do anything to a player wallet. This needs to be implemented based on the response values.
 - If admins wish to be able to fetch expired `global messages`, it is possible to implement an optional parameter to do so.
 
 # Troubleshooting
