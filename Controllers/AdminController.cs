@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Newtonsoft.Json;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -45,10 +46,12 @@ namespace Rumble.Platform.MailboxService.Controllers
             // following modification needed because something in update to platform-common made it not pull values correctly for attachments
             // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
             object messageData = Require<object>(key: "message");
-            string attachmentsString = messageData.ToString();
-            int stringStart = attachmentsString.IndexOf("attachments\":[") + 14;
-            int stringEnd = attachmentsString.IndexOf("],\"expiration");
-            string attachmentsSubstring = attachmentsString.Substring(stringStart, stringEnd - stringStart);
+            string messageString = messageData.ToString();
+            
+            /*
+            int stringStart = messageString.IndexOf("attachments\":[") + 14;
+            int stringEnd = messageString.IndexOf("],\"expiration");
+            string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
             string[] attachmentsSplit = attachmentsSubstring.Split(",");
             List<Attachment> attachments = new List<Attachment>();
             for (int i = 0; i < attachmentsSplit.Length / 2; i++)
@@ -65,6 +68,9 @@ namespace Rumble.Platform.MailboxService.Controllers
             // need to add the message in inbox for each accountId
             Message message = Require<Message>(key: "message");
             message.UpdateAttachments(attachments);
+            */
+
+            Message message = JsonConvert.DeserializeObject<Message>(messageString);
             
             try
             {
@@ -82,11 +88,14 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             // following modification needed because something in update to platform-common made it not pull values correctly for attachments
             // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+            
             object messageData = Require<object>(key: "globalMessage");
-            string attachmentsString = messageData.ToString();
-            int stringStart = attachmentsString.IndexOf("attachments\":[") + 14;
-            int stringEnd = attachmentsString.IndexOf("],\"expiration");
-            string attachmentsSubstring = attachmentsString.Substring(stringStart, stringEnd - stringStart);
+            string messageString = messageData.ToString();
+            
+            /*
+            int stringStart = messageString.IndexOf("attachments\":[") + 14;
+            int stringEnd = messageString.IndexOf("],\"expiration");
+            string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
             string[] attachmentsSplit = attachmentsSubstring.Split(",");
             List<Attachment> attachments = new List<Attachment>();
             for (int i = 0; i < attachmentsSplit.Length / 2; i++)
@@ -103,7 +112,9 @@ namespace Rumble.Platform.MailboxService.Controllers
             // need to add the message in inbox for each accountId
             GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
             globalMessage.UpdateAttachments(attachments);
+            */
 
+            GlobalMessage globalMessage = JsonConvert.DeserializeObject<GlobalMessage>(messageString);
             _globalMessageService.Create(globalMessage);
             return Ok(globalMessage.ResponseObject);
         }
@@ -125,7 +136,17 @@ namespace Rumble.Platform.MailboxService.Controllers
             // incorrect format for following inputs should default to previous entry
             string subject = Optional<string>(key: "subject") ?? message.Subject;
             string body = Optional<string>(key: "body") ?? message.Body;
-            List<Attachment> attachments = Optional<List<Attachment>>(key: "attachments") ?? message.Attachments;
+            GenericData[] attachmentsData = Optional<GenericData[]>(key: "attachments");
+            List<Attachment> attachments = message.Attachments;
+            if (attachmentsData != null)
+            {
+                attachments = new List<Attachment>();
+                foreach (GenericData ele in attachmentsData)
+                {
+                    string attachmentString = ele.JSON;
+                    attachments.Add(JsonConvert.DeserializeObject<Attachment>(attachmentString));
+                }
+            }
             long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
             long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
             string image = Optional<string>(key: "image") ?? message.Image;
