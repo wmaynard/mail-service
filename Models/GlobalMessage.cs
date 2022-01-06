@@ -4,6 +4,7 @@ using MongoDB.Bson.Serialization.Attributes;
 
 namespace Rumble.Platform.MailboxService.Models
 {
+    [BsonIgnoreExtraElements]
     public class GlobalMessage : Message
     {
         internal const string DB_KEY_FOR_ACCOUNTS_BEFORE = "acctsbefore";
