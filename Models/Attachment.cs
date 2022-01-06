@@ -38,6 +38,10 @@ namespace Rumble.Platform.MailboxService.Models
             Type = type;
             RewardId = rewardId;
             Quantity = quantity;
+            if (quantity == 0)
+            {
+                Quantity = 1;
+            }
         }
     }
 }
