@@ -46,6 +46,7 @@ cleaned up from the database after a specific amount of time determined by an en
 | Subject | A header typically to denote the main reason of a `message`. |
 | Body | Contains details related to the `message`. |
 | Attachments | Contains a list of any `attachments` that may be sent along with the `message`. |
+| Attachment | Formatted by `Type` `RewardId` `Quantity` |
 | Timestamp | Used to record the creation time of relevant objects, formatted as a `Unix timestamp`. |
 | Expiration | Used to denote when a `message` will be `expired`, and thus not visible or `claimable`. Formatted as a `Unix timestamp`. |
 | VisibleFrom | A `Unix timestamp` that makes `messages` visible. This allows `messages` to be sent before they are intended to be received. |
@@ -102,13 +103,14 @@ All non-health endpoints require a valid admin token.
 | PATCH | `/global/messages/expire` | _Deletes_ a `global message` by manually expiring it. The `global message` will remain in MongoDB until cleaned up. | *string*`messageId` |  |
 
 ### Notes
-An `attachment` has two required properties: an *int* `Quantity` and a *string* `Type`.
+An `attachment` has two required properties: an *string* `Type` and a *string* `RewardId`. It also has an optional property *int* `Quantity`. This defaults to 1 if left out.
 
 **`Attachment` Example**:
 ```
 {
-    "Quantity": 100,
-    "Type": "gold"
+    "Type": "currency",
+    "RewardId": soft_currency,
+    "Quantity": 1500
 }
 ```
 
@@ -140,8 +142,8 @@ A `message` has a `timestamp` property automatically set to the current time as 
         "subject": "Test",
         "body": "Test body",
         "attachments": [
-            {"Quantity": 200, "Type": "gem"},
-            {"Quantity": 5000, "Type": "gold"}
+            {"Type": "currency", "RewardId": soft_currency, "Quantity": 1500}
+            {"Type": "hero", "RewardId": warlord, "Quantity": 2}
         ],
         "expiration": 1635563500,
         "visibleFrom": 1635550000,

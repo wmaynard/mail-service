@@ -7,6 +7,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
+    [BsonIgnoreExtraElements]
     public class Message : PlatformCollectionDocument
     {
         internal const string DB_KEY_SUBJECT = "sbjct";
@@ -112,11 +113,6 @@ namespace Rumble.Platform.MailboxService.Models
             {
                 throw new Exception(message:$"Message {Id} has already been claimed!");
             }
-        }
-
-        public void UpdateAttachments(List<Attachment> attachments)
-        {
-            Attachments = attachments;
         }
 
         public void RemovePrevious()

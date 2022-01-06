@@ -5,6 +5,7 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
+    [BsonIgnoreExtraElements]
     public class Inbox : PlatformCollectionDocument
     {
         internal const string DB_KEY_ACCOUNT_ID = "aid";

@@ -8,32 +8,41 @@ using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models
 {
+    [BsonIgnoreExtraElements]
     public class Attachment : PlatformDataModel
     {
-        internal const string DB_KEY_QUANTITY = "qnty";
         internal const string DB_KEY_TYPE = "type";
+        internal const string DB_KEY_REWARD_ID = "rwdId";
+        internal const string DB_KEY_QUANTITY = "qnty";
 
-        public const string FRIENDLY_KEY_QUANTITY = "quantity";
         public const string FRIENDLY_KEY_TYPE = "type";
-        
-        [BsonElement(DB_KEY_QUANTITY)]
-        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_QUANTITY)]
-        public int Quantity { get; private set; }
+        public const string FRIENDLY_KEY_REWARD_ID = "rewardId";
+        public const string FRIENDLY_KEY_QUANTITY = "quantity";
         
         // TODO probably change to enum once we know what types this can be
         [BsonElement(DB_KEY_TYPE)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TYPE)]
         public string Type { get; private set; }
+        
+        [BsonElement(DB_KEY_REWARD_ID)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_REWARD_ID)]
+        public string RewardId { get; private set; }
+        
+        [BsonElement(DB_KEY_QUANTITY)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_QUANTITY)]
+        public int Quantity { get; private set; }
 
         // TODO also change string to whatever type we decide on
-        public Attachment(int quantity, string type)
+        public Attachment(string type, string rewardId, int quantity = 1)
         {
-            Quantity = quantity;
             Type = type;
+            RewardId = rewardId;
+            Quantity = quantity;
         }
     }
 }
 
 // Attachment - tentative
-// - Quantity
 // - Type (string for now)
+// - RewardId
+// - Quantity
