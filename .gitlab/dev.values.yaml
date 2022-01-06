@@ -56,7 +56,7 @@ service:
 ingress:
   enabled: true
   paths: 
-    - "/mailbox"
+    - "/mail"
   tls:
     enabled: true
     acme: true
