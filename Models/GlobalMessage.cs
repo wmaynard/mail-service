@@ -14,21 +14,21 @@ namespace Rumble.Platform.MailboxService.Models
         [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
         public long? ForAccountsBefore { get; private set; }
-        
+
         public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
-            long visibleFrom, string image, StatusType status, long? forAccountsBefore = null) 
-            : base(subject: subject, body: body, attachments: attachments, expiration: expiration, 
-                visibleFrom: visibleFrom, image: image, status: status)
+            long visibleFrom, string icon, string banner, StatusType status, long? forAccountsBefore = null)
+            : base(subject: subject, body: body, attachments: attachments, expiration: expiration,
+                visibleFrom: visibleFrom, icon: icon, banner: banner, status: status)
         {
             ForAccountsBefore = forAccountsBefore;
         }
         
         public void UpdateGlobal(string subject, string body, List<Attachment> attachments, long expiration,
-            long visibleFrom, string image, StatusType status, long? forAccountsBefore = null)
+            long visibleFrom, string icon, string banner, StatusType status, long? forAccountsBefore = null)
         {
             ForAccountsBefore = forAccountsBefore;
             UpdateBase(subject: subject, body: body, attachments: attachments, expiration: expiration, 
-                visibleFrom: visibleFrom, image: image, status: status);
+                visibleFrom: visibleFrom, icon: icon, banner: banner, status: status);
         }
 
         public void ExpireGlobal()
@@ -43,11 +43,12 @@ namespace Rumble.Platform.MailboxService.Models
             List<Attachment> attachments = message.Attachments;
             long expiration = message.Expiration;
             long visibleFrom = message.VisibleFrom;
-            string image = message.Image;
+            string icon = message.Icon;
+            string banner = message.Banner;
             StatusType status = message.Status;
             long? forAccountsBefore = message.ForAccountsBefore;
             GlobalMessage copy = new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
-                image: image, status: status, forAccountsBefore: forAccountsBefore);
+                icon: icon, banner: banner, status: status, forAccountsBefore: forAccountsBefore);
             copy.SetId(message.Id);
             return copy;
         }
