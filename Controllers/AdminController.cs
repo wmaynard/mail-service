@@ -149,12 +149,13 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
             long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
-            string image = Optional<string>(key: "image") ?? message.Image;
+            string icon = Optional<string>(key: "icon") ?? message.Icon;
+            string banner = Optional<string>(key: "banner") ?? message.Banner;
             Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
             long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
 
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
-                image: image, status: status, forAccountsBefore: forAccountsBefore);
+                icon: icon, banner: banner, status: status, forAccountsBefore: forAccountsBefore);
             
             _inboxService.UpdateAll(id: messageId, edited: message);
             _globalMessageService.Update(message);

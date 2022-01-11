@@ -16,7 +16,8 @@ namespace Rumble.Platform.MailboxService.Models
         internal const string DB_KEY_TIMESTAMP = "tmestmp";
         internal const string DB_KEY_EXPIRATION = "expire";
         internal const string DB_KEY_VISIBLE_FROM = "visible";
-        internal const string DB_KEY_IMAGE = "img";
+        internal const string DB_KEY_ICON = "icon";
+        internal const string DB_KEY_BANNER = "banner";
         internal const string DB_KEY_STATUS = "status";
         internal const string DB_KEY_PREVIOUS_VERSIONS = "prev";
 
@@ -26,7 +27,8 @@ namespace Rumble.Platform.MailboxService.Models
         public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
         public const string FRIENDLY_KEY_EXPIRATION = "expiration";
         public const string FRIENDLY_KEY_VISIBLE_FROM = "visibleFrom";
-        public const string FRIENDLY_KEY_IMAGE = "image";
+        public const string FRIENDLY_KEY_ICON = "icon";
+        public const string FRIENDLY_KEY_BANNER = "banner";
         public const string FRIENDLY_KEY_STATUS = "status";
         public const string FRIENDLY_KEY_PREVIOUS_VERSIONS = "previousVersions";
 
@@ -54,9 +56,13 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VISIBLE_FROM)]
         public long VisibleFrom { get; private set; }
         
-        [BsonElement(DB_KEY_IMAGE)]
-        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_IMAGE)]
-        public string Image { get; private set; }
+        [BsonElement(DB_KEY_ICON), BsonDefaultValue(null)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ICON)]
+        public string Icon { get; private set; }
+        
+        [BsonElement(DB_KEY_BANNER), BsonDefaultValue(null)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_BANNER)]
+        public string Banner { get; private set; }
         
         public enum StatusType { UNCLAIMED, CLAIMED }
         [BsonElement(DB_KEY_STATUS)]
@@ -71,7 +77,7 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonIgnore]
         public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
-        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string image, StatusType status)
+        public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string icon, string banner, StatusType status)
         {
             Subject = subject;
             Body = body;
@@ -79,14 +85,23 @@ namespace Rumble.Platform.MailboxService.Models
             Timestamp = UnixTime;
             Expiration = expiration;
             VisibleFrom = visibleFrom;
-            Image = image;
+            Icon = icon;
+            if (icon == null)
+            {
+                Icon = "default";
+            }
+            Banner = banner;
+            if (banner == null)
+            {
+                Banner = "default";
+            }
             Status = status;
             PreviousVersions = new List<Message>();
             Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
         }
         
         public void UpdateBase(string subject, string body, List<Attachment> attachments, long expiration,
-            long visibleFrom, string image, StatusType status)
+            long visibleFrom, string icon, string banner, StatusType status)
         {
             Subject = subject;
             Body = body;
@@ -94,7 +109,8 @@ namespace Rumble.Platform.MailboxService.Models
             Timestamp = UnixTime;
             Expiration = expiration;
             VisibleFrom = visibleFrom;
-            Image = image;
+            Icon = icon;
+            Banner = banner;
             Status = status;
         }
 
@@ -143,6 +159,7 @@ namespace Rumble.Platform.MailboxService.Models
 // - Timestamp (Unix timestamp, assigned on creation)
 // - Expiration (Unix timestamp)
 // - VisibleFrom (Unix timestamp)
-// - Image (string value)
+// - Icon (string value)
+// - Banner (string value)
 // - Status (CLAIMED or UNCLAIMED)
 // - IsExpired (getter property)
