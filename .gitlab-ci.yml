@@ -58,8 +58,8 @@ build_app:
 build_image:
   stage: build
   allow_failure: false
-  except:
-    - merge_requests
+  only:
+    - main
   cache:
     key: $CI_PROJECT_NAME-scan
     paths:
@@ -98,8 +98,8 @@ build_image:
 commit_scan_results:
   stage: scan
   allow_failure: false
-  except:
-    - merge_requests
+  only:
+    - main
   image:
     name: ubuntu
   script:
