@@ -136,6 +136,7 @@ To supply a `message` or a `global message` to be sent out, all fields must be p
 }
 ```
 A `message` has a `timestamp` property automatically set to the current time as a `Unix timestamp`. It also has a `status` property automatically set to `UNCLAIMED`.
+If an `icon` or a `banner` is not included, then the default value is a *string*`"default"`.
 
 **`GlobalMessage` Example**:
 ```

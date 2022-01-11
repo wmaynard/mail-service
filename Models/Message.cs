@@ -86,7 +86,15 @@ namespace Rumble.Platform.MailboxService.Models
             Expiration = expiration;
             VisibleFrom = visibleFrom;
             Icon = icon;
+            if (icon == null)
+            {
+                Icon = "default";
+            }
             Banner = banner;
+            if (banner == null)
+            {
+                Banner = "default";
+            }
             Status = status;
             PreviousVersions = new List<Message>();
             Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
