@@ -56,11 +56,11 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VISIBLE_FROM)]
         public long VisibleFrom { get; private set; }
         
-        [BsonElement(DB_KEY_ICON)]
+        [BsonElement(DB_KEY_ICON), BsonDefaultValue(null)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ICON)]
         public string Icon { get; private set; }
         
-        [BsonElement(DB_KEY_BANNER)]
+        [BsonElement(DB_KEY_BANNER), BsonDefaultValue(null)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_BANNER)]
         public string Banner { get; private set; }
         
