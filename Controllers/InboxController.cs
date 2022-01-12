@@ -37,7 +37,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             if (accountInbox == null) // means new account, need to call GetInbox() when account is created
             {
                 Log.Info(Owner.Nathan, message: $"Creating inbox for accountId {Token.AccountId}.");
-                GlobalMessage[] globalMessages = _globalMessageService.GetAllGlobalMessages()
+                GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
                     .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                     .Where(message => !message.IsExpired)
                     .Select(message => message)
@@ -51,8 +51,9 @@ namespace Rumble.Platform.MailboxService.Controllers
 
             // updating global messages
             Log.Info(Owner.Nathan, message: $"Updating inbox for accountId {Token.AccountId}.");
-            GlobalMessage[] globals = _globalMessageService.GetAllGlobalMessages()
+            GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
                 .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
+                .Where(message => !message.IsExpired)
                 .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
                 .Select(message => message)
                 .ToArray();
