@@ -70,8 +70,17 @@ namespace Rumble.Platform.MailboxService.Controllers
             message.UpdateAttachments(attachments);
             */
 
-            Message message = JsonConvert.DeserializeObject<Message>(messageString);
-            
+            Message message = null;
+
+            try
+            {
+                message = JsonConvert.DeserializeObject<Message>(messageString);
+            }
+            catch (Exception e)
+            {
+                Log.Error(owner: Owner.Nathan, message: $"Malformed request body. {messageData}");
+                return Problem(detail: "Request body is malformed.");
+            }
             try
             {
                 _inboxService.SendTo(accountIds: accountIds, message: message);
@@ -152,10 +161,11 @@ namespace Rumble.Platform.MailboxService.Controllers
             string icon = Optional<string>(key: "icon") ?? message.Icon;
             string banner = Optional<string>(key: "banner") ?? message.Banner;
             Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
+            string internalNote = Optional<string>(key: "internalNote") ?? message.InternalNote;
             long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
 
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
-                icon: icon, banner: banner, status: status, forAccountsBefore: forAccountsBefore);
+                icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
             
             _inboxService.UpdateAll(id: messageId, edited: message);
             _globalMessageService.Update(message);

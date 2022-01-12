@@ -9,10 +9,15 @@ namespace Rumble.Platform.MailboxService.Services
     {
         public GlobalMessageService() : base(collection: "globalMessages") {  }
 
-        public IEnumerable<GlobalMessage> GetAllGlobalMessages()
+        public IEnumerable<GlobalMessage> GetActiveGlobalMessages()
         {
             long timestamp = GlobalMessage.UnixTime;
             return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList();
+        }
+
+        public IEnumerable<GlobalMessage> GetAllGlobalMessages()
+        {
+            return _collection.Find(filter: globalMessage => true).ToList();
         }
     }
 }

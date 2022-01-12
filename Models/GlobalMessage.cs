@@ -16,19 +16,19 @@ namespace Rumble.Platform.MailboxService.Models
         public long? ForAccountsBefore { get; private set; }
 
         public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
-            long visibleFrom, string icon, string banner, StatusType status, long? forAccountsBefore = null)
+            long visibleFrom, string icon, string banner, StatusType status, string internalNote, long? forAccountsBefore = null)
             : base(subject: subject, body: body, attachments: attachments, expiration: expiration,
-                visibleFrom: visibleFrom, icon: icon, banner: banner, status: status)
+                visibleFrom: visibleFrom, icon: icon, banner: banner, status: status, internalNote: internalNote)
         {
             ForAccountsBefore = forAccountsBefore;
         }
         
         public void UpdateGlobal(string subject, string body, List<Attachment> attachments, long expiration,
-            long visibleFrom, string icon, string banner, StatusType status, long? forAccountsBefore = null)
+            long visibleFrom, string icon, string banner, StatusType status, string internalNote, long? forAccountsBefore = null)
         {
             ForAccountsBefore = forAccountsBefore;
             UpdateBase(subject: subject, body: body, attachments: attachments, expiration: expiration, 
-                visibleFrom: visibleFrom, icon: icon, banner: banner, status: status);
+                visibleFrom: visibleFrom, icon: icon, banner: banner, status: status, internalNote: internalNote);
         }
 
         public void ExpireGlobal()
@@ -46,9 +46,10 @@ namespace Rumble.Platform.MailboxService.Models
             string icon = message.Icon;
             string banner = message.Banner;
             StatusType status = message.Status;
+            string internalNote = message.InternalNote;
             long? forAccountsBefore = message.ForAccountsBefore;
             GlobalMessage copy = new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
-                icon: icon, banner: banner, status: status, forAccountsBefore: forAccountsBefore);
+                icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
             copy.SetId(message.Id);
             return copy;
         }
