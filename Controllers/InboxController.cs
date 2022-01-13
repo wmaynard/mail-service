@@ -81,6 +81,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult Claim()
         {
             string messageId = Optional<string>(key: "messageId");
+            Log.Info(Owner.Nathan, message: $"Claim request for message {messageId}.");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             List<Attachment> claimed = new List<Attachment>();
             if (messageId == null) 
