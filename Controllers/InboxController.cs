@@ -34,7 +34,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             
             if (accountInbox == null) // means new account, need to call GetInbox() when account is created
             {
-                Log.Info(Owner.Nathan, message: $"Creating inbox for accountId {Token.AccountId}.");
+                Log.Info(Owner.Nathan, message: $"Creating inbox for account", data: $"AccountId: {Token.AccountId}");
                 GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
                     .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                     .Where(message => !message.IsExpired)
@@ -48,7 +48,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
 
             // updating global messages
-            Log.Info(Owner.Nathan, message: $"Updating inbox for accountId {Token.AccountId}.");
+            Log.Info(Owner.Nathan, message: $"Updating inbox for account", data: $"AccountId: {Token.AccountId}");
             GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
                 .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
                 .Where(message => !message.IsExpired)
@@ -61,7 +61,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Error while trying to add globals to account {Token.AccountId}. Inbox may be malformed.", exception: e);
+                Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
             }
             
             List<Message> filteredMessages = accountInbox.Messages
@@ -81,9 +81,10 @@ namespace Rumble.Platform.MailboxService.Controllers
             string messageId = Optional<string>(key: "messageId");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             List<Attachment> claimed = new List<Attachment>();
-            if (messageId == null) 
+            if (messageId == null)
             {
-                Log.Info(Owner.Nathan, message: $"Claiming all messages in inbox for accountId {Token.AccountId}.");
+                Log.Info(Owner.Nathan, message: $"Claiming all messages in inbox for account",
+                    data: $"AccountId: {Token.AccountId}");
                 // claim all
                 List<Message> messages = accountInbox.Messages;
                 foreach (Message message in messages)
@@ -97,16 +98,18 @@ namespace Rumble.Platform.MailboxService.Controllers
                         }
                         catch (Exception e)
                         {
-                            Log.Error(Owner.Nathan, message: e.Message);
+                            Log.Error(Owner.Nathan, message: "Error occured while claiming all messages.",
+                                data: $"{e.Message}");
                         }
                     }
+
+                    _inboxService.Update(accountInbox);
                 }
-                _inboxService.Update(accountInbox);
             }
             else
             {
                 // claim one
-                Log.Info(Owner.Nathan, message: $"Attempting to claim message {messageId} for accountId {Token.AccountId}.");
+                Log.Info(Owner.Nathan, message: $"Attempting to claim message for account...", data: $"Message: {messageId}, AccountId: {Token.AccountId}");
                 Message message = accountInbox.Messages.Find(message => message.Id == messageId);
                 try
                 {
@@ -120,7 +123,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                 }
                 catch (Exception e)
                 {
-                    Log.Error(Owner.Nathan, message: e.Message);
+                    Log.Error(Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
                     return Problem(e.Message);
                 }
             }
