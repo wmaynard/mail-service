@@ -78,7 +78,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Malformed request body. {messageData}");
+                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}");
                 return Problem(detail: "Request body is malformed.");
             }
             try
@@ -87,7 +87,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             catch (Exception)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Message {message} could not be sent to accounts {accountIds}.");
+                Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds", data: $"Message: {message}, accountIds: {accountIds}.");
             }
             return Ok(message.ResponseObject);
         }
@@ -136,7 +136,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             
             if (message == null)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Global message {messageId} not found while attempting to edit.");
+                Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global messageId: {messageId}");
                 return Problem(detail: $"Global message {messageId} not found.");
             }
             
@@ -181,7 +181,7 @@ namespace Rumble.Platform.MailboxService.Controllers
 
             if (message == null)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Global message {messageId} not found while attempting to expire.");
+                Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to expire", data: $"Global messageId: {messageId}");
                 return Problem(detail: $"Global message {messageId} was not found.");
             }
 
