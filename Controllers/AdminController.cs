@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -78,16 +76,16 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Malformed request body. {messageData}");
+                Log.Error(owner: Owner.Nathan, message: $"Malformed request body. {messageData}", exception: e);
                 return Problem(detail: "Request body is malformed.");
             }
             try
             {
                 _inboxService.SendTo(accountIds: accountIds, message: message);
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Message {message} could not be sent to accounts {accountIds}.");
+                Log.Error(owner: Owner.Nathan, message: $"Message {message} could not be sent to accounts {accountIds}.", exception: e);
             }
             return Ok(message.ResponseObject);
         }

@@ -3,8 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.Hosting.Internal;
-using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -63,7 +61,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Error while trying to add globals to account {Token.AccountId}. Inbox may be malformed.");
+                Log.Error(owner: Owner.Nathan, message: $"Error while trying to add globals to account {Token.AccountId}. Inbox may be malformed.", exception: e);
             }
             
             List<Message> filteredMessages = accountInbox.Messages
@@ -81,7 +79,6 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult Claim()
         {
             string messageId = Optional<string>(key: "messageId");
-            Log.Info(Owner.Nathan, message: $"Claim request for message {messageId}.");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             List<Attachment> claimed = new List<Attachment>();
             if (messageId == null) 
@@ -91,14 +88,17 @@ namespace Rumble.Platform.MailboxService.Controllers
                 List<Message> messages = accountInbox.Messages;
                 foreach (Message message in messages)
                 {
-                    try
+                    if (message.Status == 0)
                     {
-                        message.UpdateClaimed();
-                        claimed.AddRange(message.Attachments);
-                    }
-                    catch (Exception e)
-                    {
-                        Log.Error(Owner.Nathan, message: e.Message);
+                        try
+                        {
+                            message.UpdateClaimed();
+                            claimed.AddRange(message.Attachments);
+                        }
+                        catch (Exception e)
+                        {
+                            Log.Error(Owner.Nathan, message: e.Message);
+                        }
                     }
                 }
                 _inboxService.Update(accountInbox);
