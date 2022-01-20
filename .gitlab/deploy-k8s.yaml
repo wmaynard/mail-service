@@ -20,9 +20,8 @@ dev:
       when: never
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
       when: never
-    - if: '$DEV_ENABLED'
     - if: $DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"
-      when: always
+      when: manual
 
 stage-a:
   extends: .auto-deploy
@@ -43,7 +42,7 @@ stage-a:
       when: never
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
       when: never
-    - if: '$STAGING_ENABLED && ($DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both")'
+    - if: '$DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"'
       when: manual
 
 stage-b:
@@ -65,5 +64,51 @@ stage-b:
       when: never
     - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
       when: never
-    - if: '$STAGING_ENABLED && ($DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both")'
+    - if: '$DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"'
+      when: manual
+
+stage-c:
+  extends: .auto-deploy
+  stage: staging
+  allow_failure: false
+  script:
+    - auto-deploy check_kube_domain
+    - auto-deploy download_chart
+    - auto-deploy ensure_namespace
+    - auto-deploy initialize_tiller
+    - auto-deploy create_secret
+    - auto-deploy deploy
+  environment:
+    name: stage-c
+    url: https://stage-c.nonprod.tower.cdrentertainment.com/
+  rules:
+    - if: '$CI_KUBERNETES_ACTIVE == null || $CI_KUBERNETES_ACTIVE == ""'
+      when: never
+    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
+      when: never
+    - if: '$DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"'
+      when: manual
+
+production:
+  extends: .auto-deploy
+  stage: staging
+  tags:
+    - production
+  allow_failure: false
+  script:
+    - auto-deploy check_kube_domain
+    - auto-deploy download_chart
+    - auto-deploy ensure_namespace
+    - auto-deploy initialize_tiller
+    - auto-deploy create_secret
+    - auto-deploy deploy
+  environment:
+    name: production/platform
+    url: https://platform.prod.tower.rumbelgames.com/
+  rules:
+    - if: '$CI_KUBERNETES_ACTIVE == null || $CI_KUBERNETES_ACTIVE == ""'
+      when: never
+    - if: '$CI_COMMIT_BRANCH != $CI_DEFAULT_BRANCH'
+      when: never
+    - if: '$DEPLOY_TYPE == "kubernetes" || $DEPLOY_TYPE == "both"'
       when: manual
