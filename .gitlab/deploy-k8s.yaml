@@ -91,7 +91,7 @@ stage-c:
 
 production:
   extends: .auto-deploy
-  stage: staging
+  stage: production
   tags:
     - production
   allow_failure: false
