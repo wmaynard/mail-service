@@ -56,14 +56,13 @@ service:
 ingress:
   enabled: true
   paths: 
-    - "/mailbox"
+    - "/mail"
   tls:
     enabled: false
     acme: false
-    secretName: "mailbox-service-stage-b"
+    secretName: "mailbox-service-prod"
     useDefaultSecret: false
   annotations:
-    cert-manager.io/cluster-issuer: "letsencrypt-prod"
     kubernetes.io/ingress.class: "nginx"
   modSecurity:
     enabled: false
@@ -102,8 +101,8 @@ postgresql:
 
 resources:
   limits:
-    cpu: 128m
-    memory: 128Mi
+    cpu: 256m
+    memory: 256Mi
   requests:
     cpu: 128m
     memory: 128Mi
