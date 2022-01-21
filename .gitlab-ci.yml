@@ -120,4 +120,4 @@ commit_scan_results:
 
 include:
   - '/.gitlab/deploy-k8s.yaml'
-  = '/.gitlab/deploy-eb.yaml'
+  - '/.gitlab/deploy-eb.yaml'
