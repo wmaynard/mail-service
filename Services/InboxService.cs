@@ -18,8 +18,6 @@ namespace Rumble.Platform.MailboxService.Services
         public void DeleteExpired() // removes old expired messages in inboxes
         {
             //just keeping the ones that are not expired and are visible
-            Log.Local(Owner.Nathan, message:"Attempt to delete expired messages...");
-            // currently not deleting global messages to keep more logs, shouldn't be large enough to need to delete on timer
             long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable(name: "INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
             
             List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
@@ -37,7 +35,6 @@ namespace Rumble.Platform.MailboxService.Services
             _inboxTimer.Start();
             try
             {
-                Log.Info(Owner.Nathan, message:"Attempting to check expired messages...");
                 DeleteExpired();
             }
             catch (Exception e)
