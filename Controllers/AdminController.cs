@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
@@ -74,7 +75,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 message = JsonConvert.DeserializeObject<Message>(messageString);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}");
                 return Problem(detail: "Request body is malformed.");
@@ -83,7 +84,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 _inboxService.SendTo(accountIds: accountIds, message: message);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds", data: $"Message: {message}, accountIds: {accountIds}.");
             }
@@ -191,6 +192,55 @@ namespace Rumble.Platform.MailboxService.Controllers
             _inboxService.UpdateExpiration(id: messageId);
             _globalMessageService.Update(message);
             return Ok(message.ResponseObject);
+        }
+
+        [HttpGet, Route(template: "inbox"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult GetInboxAdmin()
+        {
+            string accountId = Require<string>(key: "accountId");
+            Inbox accountInbox = _inboxService.Get(accountId);
+
+            if (accountInbox == null)
+            {
+                // Log.Info(Owner.Nathan, message: $"Creating inbox for account", data: $"AccountId: {Token.AccountId}");
+                GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
+                    .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
+                    .Where(message => !message.IsExpired)
+                    .Select(message => message)
+                    .OrderBy(message => message.Expiration)
+                    .ToArray();
+                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
+                accountInbox.Messages.AddRange(globalMessages);
+                _inboxService.Create(accountInbox);
+                return Ok(accountInbox.ResponseObject);
+            }
+            
+            // updating global messages
+            // Log.Info(Owner.Nathan, message: $"Updating inbox for account", data: $"AccountId: {Token.AccountId}");
+            GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
+                .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
+                .Where(message => !message.IsExpired)
+                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
+                .Select(message => message)
+                .ToArray();
+            try
+            {
+                accountInbox.Messages.AddRange(globals);
+            }
+            catch (Exception)
+            {
+                Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
+            }
+            
+            List<Message> filteredMessages = accountInbox.Messages
+                .Where(message => !message.IsExpired)
+                .Select(message => message)
+                .OrderBy(message => message.Expiration)
+                .ToList();
+            accountInbox.UpdateMessages(filteredMessages);
+
+            _inboxService.Update(accountInbox);
+            return Ok(accountInbox.ResponseObject);
         }
     }
 }

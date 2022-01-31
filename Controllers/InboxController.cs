@@ -59,7 +59,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 accountInbox.Messages.AddRange(globals);
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
             }
