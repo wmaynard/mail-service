@@ -94,12 +94,12 @@ namespace Rumble.Platform.MailboxService.Models
             Icon = icon;
             if (icon == null)
             {
-                Icon = "default";
+                Icon = "";
             }
             Banner = banner;
             if (banner == null)
             {
-                Banner = "default";
+                Banner = "";
             }
             Status = status;
             InternalNote = internalNote;
