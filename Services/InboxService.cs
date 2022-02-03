@@ -39,7 +39,7 @@ namespace Rumble.Platform.MailboxService.Services
             }
             catch (Exception e)
             {
-                Log.Error(Owner.Nathan, message:"Failure to check expired messages.", data: $"{e.Message}");
+                Log.Error(owner: Owner.Nathan, message:"Failure to check expired messages.", data: $"{e.Message}");
             }
             _inboxTimer.Start();
         }
@@ -65,8 +65,11 @@ namespace Rumble.Platform.MailboxService.Services
             
             FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
             UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
-            
+            FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
+            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1], edited);
+
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
             _collection.BulkWrite(listWrites);
         }
 
@@ -76,8 +79,11 @@ namespace Rumble.Platform.MailboxService.Services
             
             FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
             UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
+            FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
+            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1].Expiration, Inbox.UnixTime);
 
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
             _collection.BulkWrite(listWrites);
         }
 
@@ -87,8 +93,10 @@ namespace Rumble.Platform.MailboxService.Services
             
             FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
             UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, message);
+            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Push(inbox => inbox.History, message);
 
             listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
             _collection.BulkWrite(listWrites);
         }
     }

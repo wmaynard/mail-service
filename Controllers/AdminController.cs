@@ -194,7 +194,7 @@ namespace Rumble.Platform.MailboxService.Controllers
             return Ok(message.ResponseObject);
         }
 
-        [HttpGet, Route(template: "inbox"), RequireAuth(TokenType.ADMIN)]
+        [HttpPost, Route(template: "inbox"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GetInboxAdmin()
         {
             string accountId = Require<string>(key: "accountId");
@@ -202,21 +202,10 @@ namespace Rumble.Platform.MailboxService.Controllers
 
             if (accountInbox == null)
             {
-                // Log.Info(Owner.Nathan, message: $"Creating inbox for account", data: $"AccountId: {Token.AccountId}");
-                GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
-                    .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
-                    .Where(message => !message.IsExpired)
-                    .Select(message => message)
-                    .OrderBy(message => message.Expiration)
-                    .ToArray();
-                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
-                accountInbox.Messages.AddRange(globalMessages);
-                _inboxService.Create(accountInbox);
-                return Ok(accountInbox.ResponseObject);
+                return Problem(detail: "Account with accountId does not exist.");
             }
             
             // updating global messages
-            // Log.Info(Owner.Nathan, message: $"Updating inbox for account", data: $"AccountId: {Token.AccountId}");
             GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
                 .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
                 .Where(message => !message.IsExpired)
@@ -226,6 +215,11 @@ namespace Rumble.Platform.MailboxService.Controllers
             try
             {
                 accountInbox.Messages.AddRange(globals);
+                if (accountInbox.History == null)
+                {
+                    accountInbox.CreateHistory();
+                }
+                accountInbox.History.AddRange(globals);
             }
             catch (Exception)
             {
@@ -259,3 +253,5 @@ namespace Rumble.Platform.MailboxService.Controllers
 //   - body should contain a messageId and all parameters, incorrect parameter types are ignored
 // - PATCH /mail/admin/global/messages/expire
 //   - body should contain a messageId
+// - POST /mail/admin/inbox
+//   - body should contain an accountId

@@ -34,21 +34,20 @@ namespace Rumble.Platform.MailboxService.Controllers
             
             if (accountInbox == null) // means new account, need to call GetInbox() when account is created
             {
-                // Log.Info(Owner.Nathan, message: $"Creating inbox for account", data: $"AccountId: {Token.AccountId}");
                 GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
                     .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                     .Where(message => !message.IsExpired)
                     .Select(message => message)
                     .OrderBy(message => message.Expiration)
                     .ToArray();
-                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>());
+                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>(), history: new List<Message>());
                 accountInbox.Messages.AddRange(globalMessages);
+                accountInbox.History.AddRange(globalMessages);
                 _inboxService.Create(accountInbox);
                 return Ok(accountInbox.ResponseObject);
             }
 
             // updating global messages
-            // Log.Info(Owner.Nathan, message: $"Updating inbox for account", data: $"AccountId: {Token.AccountId}");
             GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
                 .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
                 .Where(message => !message.IsExpired)
@@ -58,6 +57,11 @@ namespace Rumble.Platform.MailboxService.Controllers
             try
             {
                 accountInbox.Messages.AddRange(globals);
+                if (accountInbox.History == null)
+                {
+                    accountInbox.CreateHistory();
+                }
+                accountInbox.History.AddRange(globals);
             }
             catch (Exception)
             {
@@ -79,12 +83,10 @@ namespace Rumble.Platform.MailboxService.Controllers
         public ObjectResult Claim()
         {
             string messageId = Optional<string>(key: "messageId");
-            // Log.Info(Owner.Nathan, message: $"Claim request for message", data: $"MessageId: {messageId}");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
             List<Attachment> claimed = new List<Attachment>();
             if (messageId == null)
             {
-                // Log.Info(Owner.Nathan, message: $"Claiming all messages in inbox for account", data: $"AccountId: {Token.AccountId}");
                 // claim all
                 List<Message> messages = accountInbox.Messages;
                 foreach (Message message in messages)
@@ -95,11 +97,19 @@ namespace Rumble.Platform.MailboxService.Controllers
                         {
                             message.UpdateClaimed();
                             claimed.AddRange(message.Attachments);
+                            Message record = accountInbox.History.Find(history => history.Id == message.Id);
+                            try
+                            {
+                                record.UpdateClaimed();
+                            }
+                            catch (Exception e)
+                            {
+                                Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
+                            }
                         }
                         catch (Exception e)
                         {
-                            Log.Error(Owner.Nathan, message: "Error occured while claiming all messages.",
-                                data: $"{e.Message}");
+                            Log.Error(owner: Owner.Nathan, message: "Error occured while claiming all messages.", data: $"{e.Message}");
                         }
                     }
 
@@ -109,7 +119,6 @@ namespace Rumble.Platform.MailboxService.Controllers
             else
             {
                 // claim one
-                // Log.Info(Owner.Nathan, message: $"Attempting to claim message for account...", data: $"Message: {messageId}, AccountId: {Token.AccountId}");
                 Message message = accountInbox.Messages.Find(message => message.Id == messageId);
                 try
                 {
@@ -118,12 +127,21 @@ namespace Rumble.Platform.MailboxService.Controllers
                         throw new Exception(message: $"Message {messageId} was not found while attempting to claim for accountId {Token.AccountId}.)");
                     }
                     message.UpdateClaimed();
+                    Message record = accountInbox.History.Find(history => history.Id == message.Id);
+                    try
+                    {
+                        record.UpdateClaimed();
+                    }
+                    catch (Exception e)
+                    {
+                        Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
+                    }
                     claimed.AddRange(message.Attachments);
                     _inboxService.Update(accountInbox);
                 }
                 catch (Exception e)
                 {
-                    Log.Error(Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
+                    Log.Error(owner: Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
                     return Problem(e.Message);
                 }
             }

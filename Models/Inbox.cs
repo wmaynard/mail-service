@@ -11,10 +11,12 @@ namespace Rumble.Platform.MailboxService.Models
         internal const string DB_KEY_ACCOUNT_ID = "aid";
         internal const string DB_KEY_MESSAGES = "msgs";
         internal const string DB_KEY_TIMESTAMP = "tmestmp";
+        internal const string DB_KEY_HISTORY = "hist";
 
         public const string FRIENDLY_KEY_ACCOUNT_ID = "accountId";
         public const string FRIENDLY_KEY_MESSAGES = "messages";
         public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
+        public const string FRIENDLY_KEY_HISTORY = "history";
         
         [BsonElement(DB_KEY_ACCOUNT_ID)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID)]
@@ -27,17 +29,29 @@ namespace Rumble.Platform.MailboxService.Models
         [BsonElement(DB_KEY_TIMESTAMP)]
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
         public long Timestamp { get; private set; }
+        
+        [BsonElement(DB_KEY_HISTORY)]
+        [JsonInclude, JsonPropertyName(FRIENDLY_KEY_HISTORY)]
+        public List<Message> History { get; private set; }
 
-        public Inbox(string aid, List<Message> messages)
+        public Inbox(string aid, List<Message> messages, List<Message> history)
         {
             AccountId = aid;
             Messages = messages;
             Timestamp = UnixTime;
+            History = history;
         }
 
         public void UpdateMessages(List<Message> messages)
         {
             Messages = messages;
+        }
+
+        // workaround for if inbox was created without history
+        public void CreateHistory()
+        {
+            History = new List<Message>();
+            History.AddRange(Messages);
         }
     }
 }
@@ -45,3 +59,5 @@ namespace Rumble.Platform.MailboxService.Models
 // Inbox
 // - Linked to players by their accountId (aid)
 // - Collection of Messages
+// - Timestamp of inbox creation
+// - History of all messages
