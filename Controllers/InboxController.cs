@@ -84,7 +84,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         {
             string messageId = Optional<string>(key: "messageId");
             Inbox accountInbox = _inboxService.Get(Token.AccountId);
-            List<Attachment> claimed = new List<Attachment>();
+            List<Message> claimed = new List<Message>();
             if (messageId == null)
             {
                 // claim all
@@ -96,7 +96,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                         try
                         {
                             message.UpdateClaimed();
-                            claimed.AddRange(message.Attachments);
+                            claimed.Add(message);
                             Message record = accountInbox.History.Find(history => history.Id == message.Id);
                             try
                             {
@@ -136,7 +136,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                     {
                         Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
                     }
-                    claimed.AddRange(message.Attachments);
+                    claimed.Add(message);
                     _inboxService.Update(accountInbox);
                 }
                 catch (Exception e)
@@ -145,7 +145,7 @@ namespace Rumble.Platform.MailboxService.Controllers
                     return Problem(e.Message);
                 }
             }
-            return Ok(accountInbox.ResponseObject, new {claimed = claimed});
+            return Ok(new {claimed = claimed});
         }
     }
 }
