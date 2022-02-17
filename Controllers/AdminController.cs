@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -94,6 +95,7 @@ namespace Rumble.Platform.MailboxService.Controllers
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageSend()
         {
+            
             // following modification needed because something in update to platform-common made it not pull values correctly for attachments
             // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
             
