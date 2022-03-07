@@ -23,7 +23,7 @@ variables:
   K8S_SECRET_MONGODB_URI: "$MONGODB_URI"
 
   DOCKER_DRIVER: overlay2
-  DEPLOY_TYPE: "both" # "kubernetes", "beanstalk", "both"
+  DEPLOY_TYPE: "kubernetes" # "kubernetes", "beanstalk", "both"
 
   ROLLOUT_RESOURCE_TYPE: deployment
 
@@ -49,7 +49,7 @@ workflow:
 
 build_app:
   stage: app_build
-  image: mcr.microsoft.com/dotnet/sdk:5.
+  image: mcr.microsoft.com/dotnet/sdk:5.0
   allow_failure: false
   script:
     - dotnet nuget add source --username eric.sheris --password $NUGET_PAT --store-password-in-clear-text --name github "https://gitlab.cdrentertainment.com/api/v4/projects/14/packages/nuget/index.json"
@@ -133,4 +133,3 @@ commit_scan_results:
 
 include:
   - '/.gitlab/deploy-k8s.yaml'
-  - '/.gitlab/deploy-eb.yaml'
