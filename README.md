@@ -44,6 +44,7 @@ cleaned up from the database after a specific amount of time determined by an en
 | Message | A normal `message` sent to specific accounts. It contains information related to the `message` itself as well as any `attachments` to be claimed. |
 | Global Message | A special type of `message` that can be sent to all eligible players. Admins can perform additional actions to existing `global messages`. |
 | Subject | A header typically to denote the main reason of a `message`. |
+| History | A contains a list of all `messages` attached to an `inbox` at any time |
 | Body | Contains details related to the `message`. |
 | Attachments | Contains a list of any `attachments` that may be sent along with the `message`. |
 | Attachment | Formatted by `Type` `RewardId` `Quantity` |
@@ -98,10 +99,12 @@ All non-health endpoints require a valid admin token.
 | ---: | :--- | :--- | :--- | :--- |
 | GET | `/admin/health` | **INTERNAL** Health check on the status of the following services: `InboxService`, `GlobalMessageService` |  |  |
 | GET | `/admin/global/messages` | **INTERNAL** Fetches all active `global messages`. |  |  |
-| POST | `/messages/send` | **INTERNAL** Sends a `message` to a list of `accountIds`. | *List*<*string*>`accountIds`<br />*Message*`message` |  |
-| POST | `/global/messages/send` | **INTERNAL** Sends a `global message` to be fetched by all eligible users. | *GlobalMessage*`globalMessage` |  |
-| PATCH | `/global/messages/edit` | **INTERNAL** Updates any applicable fields for a `global message`. | *string*`messageId` | *string*`subject`<br />*string*`body`<br />*List*<*Attachment*>`attachments`<br />*long*`expiration`<br />*long*`visibleFrom`<br />*string*`icon`<br />*string*`banner`<br />*StatusType*`status`<br />*long*`forAccountsBefore` |
-| PATCH | `/global/messages/expire` | **INTERNAL** _Deletes_ a `global message` by manually expiring it. The `global message` will remain in MongoDB until cleaned up. | *string*`messageId` |  |
+| POST | `/admin/inbox/` | **INTERNAL** Fetches the inbox for a given `accountId`. | *string*`accountId` |  |  |
+| POST | `/admin/messages/send` | **INTERNAL** Sends a `message` to a list of `accountIds`. | *List*<*string*>`accountIds`<br />*Message*`message` |  |
+| POST | `/admin/messages/send/bulk` | **INTERNAL** Sends a list of `messages` to a list of `accountIds`. | *List*<*string*>`accountIds`<br />*List*<*Message*>`messages` |  |
+| POST | `/admin/global/messages/send` | **INTERNAL** Sends a `global message` to be fetched by all eligible users. | *GlobalMessage*`globalMessage` |  |
+| PATCH | `/admin/global/messages/edit` | **INTERNAL** Updates any applicable fields for a `global message`. | *string*`messageId` | *string*`subject`<br />*string*`body`<br />*List*<*Attachment*>`attachments`<br />*long*`expiration`<br />*long*`visibleFrom`<br />*string*`icon`<br />*string*`banner`<br />*StatusType*`status`<br />*long*`forAccountsBefore` |
+| PATCH | `/admin/global/messages/expire` | **INTERNAL** _Deletes_ a `global message` by manually expiring it. The `global message` will remain in MongoDB until cleaned up. | *string*`messageId` |  |
 
 ### Notes
 An `attachment` has two required properties: an *string* `Type` and a *string* `RewardId`. It also has an optional property *int* `Quantity`. This defaults to 1 if left out.
