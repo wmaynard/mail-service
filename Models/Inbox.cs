@@ -34,12 +34,16 @@ namespace Rumble.Platform.MailboxService.Models
         [JsonInclude, JsonPropertyName(FRIENDLY_KEY_HISTORY)]
         public List<Message> History { get; private set; }
 
-        public Inbox(string aid, List<Message> messages, List<Message> history)
+        public Inbox(string aid, List<Message> messages, List<Message> history, long timestamp = 0, string id = null)
         {
             AccountId = aid;
             Messages = messages;
-            Timestamp = UnixTime;
+            Timestamp = timestamp == 0 ? UnixTime : timestamp;
             History = history;
+            if (id != null)
+            {
+                Id = id;
+            };
         }
 
         public void UpdateMessages(List<Message> messages)

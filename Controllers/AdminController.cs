@@ -91,6 +91,45 @@ namespace Rumble.Platform.MailboxService.Controllers
             }
             return Ok(message.ResponseObject);
         }
+        
+        [HttpPost, Route(template: "messages/send/bulk"), RequireAuth(TokenType.ADMIN)]
+        public ObjectResult BulkSend()
+        {
+            List<string> accountIds = Require<List<string>>(key: "accountIds");
+            
+            // following modification needed because something in update to platform-common made it not pull values correctly for attachments
+            // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+            List<GenericData> messageData = Require<List<GenericData>>(key: "messages");
+            List<string> messageStrings = new List<string>();
+            foreach (GenericData message in messageData)
+            {
+                messageStrings.Add(message.JSON);
+            }
+
+            List<Message> messages = new List<Message>();
+
+            try
+            {
+                foreach (string messageString in messageStrings)
+                {
+                    messages.Add(JsonConvert.DeserializeObject<Message>(messageString));
+                }
+            }
+            catch (Exception)
+            {
+                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}");
+                return Problem(detail: "Request body is malformed.");
+            }
+            try
+            {
+                _inboxService.BulkSend(accountIds: accountIds, messages: messages);
+            }
+            catch (Exception)
+            {
+                Log.Error(owner: Owner.Nathan, message: "Bulk messages could not be sent to accountIds", data: $"Messages: {messages}, accountIds: {accountIds}.");
+            }
+            return Ok(new {messages});
+        }
 
         [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
         public ObjectResult GlobalMessageSend()
@@ -228,15 +267,23 @@ namespace Rumble.Platform.MailboxService.Controllers
                 Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
             }
             
-            List<Message> filteredMessages = accountInbox.Messages
+            List<Message> unexpiredMessages = accountInbox.Messages
                 .Where(message => !message.IsExpired)
                 .Select(message => message)
                 .OrderBy(message => message.Expiration)
                 .ToList();
-            accountInbox.UpdateMessages(filteredMessages);
+            accountInbox.UpdateMessages(unexpiredMessages);
 
             _inboxService.Update(accountInbox);
-            return Ok(accountInbox.ResponseObject);
+
+            List<Message> filteredMessages = accountInbox.Messages
+                .Where(message => message.VisibleFrom < Inbox.UnixTime)
+                .Select(message => message)
+                .ToList();
+            
+            Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
+            
+            return Ok(filteredInbox.ResponseObject);
         }
     }
 }

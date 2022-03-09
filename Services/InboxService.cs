@@ -97,6 +97,19 @@ namespace Rumble.Platform.MailboxService.Services
             listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
             _collection.BulkWrite(listWrites);
         }
+
+        public void BulkSend(List<string> accountIds, List<Message> messages)
+        {
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PushEach(inbox => inbox.Messages, messages);
+            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.PushEach(inbox => inbox.History, messages);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
+            _collection.BulkWrite(listWrites);
+        }
     }
 }
 
