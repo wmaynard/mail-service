@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -68,15 +69,23 @@ namespace Rumble.Platform.MailboxService.Controllers
                 Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
             }
             
-            List<Message> filteredMessages = accountInbox.Messages
+            List<Message> unexpiredMessages = accountInbox.Messages
                 .Where(message => !message.IsExpired)
                 .Select(message => message)
                 .OrderBy(message => message.Expiration)
                 .ToList();
-            accountInbox.UpdateMessages(filteredMessages);
+            accountInbox.UpdateMessages(unexpiredMessages);
 
             _inboxService.Update(accountInbox);
-            return Ok(accountInbox.ResponseObject);
+
+            List<Message> filteredMessages = accountInbox.Messages
+                .Where(message => message.VisibleFrom < Inbox.UnixTime)
+                .Select(message => message)
+                .ToList();
+            
+            Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
+            
+            return Ok(filteredInbox.ResponseObject);
         }
 
         [HttpPatch, Route(template: "claim")]

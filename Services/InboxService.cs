@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Timers;
-using MongoDB.Bson;
 using MongoDB.Driver;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
@@ -18,7 +16,7 @@ namespace Rumble.Platform.MailboxService.Services
         public void DeleteExpired() // removes old expired messages in inboxes
         {
             //just keeping the ones that are not expired and are visible
-            long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable(name: "INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
+            long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable("INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
             
             List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
             
@@ -46,7 +44,7 @@ namespace Rumble.Platform.MailboxService.Services
         
         public InboxService() : base(collection: "inboxes")
         {
-            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable(name:"INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600") * 1000) // check every hour
+            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable("INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600") * 1000) // check every hour
             {
                 AutoReset = true
             };
@@ -99,8 +97,23 @@ namespace Rumble.Platform.MailboxService.Services
             listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
             _collection.BulkWrite(listWrites);
         }
+
+        public void BulkSend(List<string> accountIds, List<Message> messages)
+        {
+            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+
+            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
+            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PushEach(inbox => inbox.Messages, messages);
+            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.PushEach(inbox => inbox.History, messages);
+
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+            listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
+            _collection.BulkWrite(listWrites);
+        }
     }
 }
 
 // InboxService
 // - On a timer, delete messages older than (Expiration + X), where X is a configurable amount of time from an environment variable.
+
+
