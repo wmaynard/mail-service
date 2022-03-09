@@ -46,7 +46,7 @@ gitlab:
 service:
   enabled: true
   annotations: {}
-  name: mb-prod
+  name: mb-prod-b
   type: NodePort
   url: 
   additionalHosts:
