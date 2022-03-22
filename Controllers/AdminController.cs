@@ -75,10 +75,11 @@ namespace Rumble.Platform.MailboxService.Controllers
             try
             {
                 message = JsonConvert.DeserializeObject<Message>(messageString);
+                message.Validate();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}");
+                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
                 return Problem(detail: "Request body is malformed.");
             }
             try
@@ -112,12 +113,14 @@ namespace Rumble.Platform.MailboxService.Controllers
             {
                 foreach (string messageString in messageStrings)
                 {
-                    messages.Add(JsonConvert.DeserializeObject<Message>(messageString));
+                    Message message = JsonConvert.DeserializeObject<Message>(messageString);
+                    message.Validate();
+                    messages.Add(message);
                 }
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}");
+                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
                 return Problem(detail: "Request body is malformed.");
             }
             try
@@ -163,7 +166,19 @@ namespace Rumble.Platform.MailboxService.Controllers
             globalMessage.UpdateAttachments(attachments);
             */
 
-            GlobalMessage globalMessage = JsonConvert.DeserializeObject<GlobalMessage>(messageString);
+            GlobalMessage globalMessage = null;
+
+            try
+            {
+                globalMessage = JsonConvert.DeserializeObject<GlobalMessage>(messageString);
+                globalMessage.Validate();
+            }
+            catch (Exception e)
+            {
+                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
+                return Problem(detail: "Request body is malformed.");
+            }
+            
             _globalMessageService.Create(globalMessage);
             return Ok(globalMessage.ResponseObject);
         }
@@ -206,6 +221,16 @@ namespace Rumble.Platform.MailboxService.Controllers
 
             message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
                 icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
+
+            try
+            {
+                message.Validate();
+            }
+            catch (Exception e)
+            {
+                Log.Error(owner: Owner.Nathan, message: "Editing global message failed.", data: e.Message);
+                return Problem(detail: "Editing global message failed.");
+            }
             
             _inboxService.UpdateAll(id: messageId, edited: message);
             _globalMessageService.Update(message);

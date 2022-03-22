@@ -156,6 +156,33 @@ namespace Rumble.Platform.MailboxService.Models
         {
             Id = id;
         }
+
+        public void Validate() // add future validations here
+        {
+            if (Timestamp < 10_000_000_000_000 && Timestamp >= 1_000_000_000_000) // more efficient than converting to string and checking length
+            {
+                Timestamp /= 1_000; // convert from ms to s by dropping last 3 digits
+            } else if (Timestamp < 1_000_000_000 || Timestamp >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
+            {
+                throw new Exception(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
+            }
+            if (Expiration < 10_000_000_000_000 && // in case of unix time in ms, checks number of digits to be valid (13)
+                Expiration >= 1_000_000_000_000) // more efficient than converting to string and checking length
+            {
+                Expiration /= 1_000; // convert from ms to s by dropping last 3 digits
+            } else if (Expiration < 1_000_000_000 || Expiration >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
+            {
+                throw new Exception(message: "Expiration is not a Unix timestamp (either in seconds or in milliseconds).");
+            }
+            if (VisibleFrom < 10_000_000_000_000 && // in case of unix time in ms, checks number of digits to be valid (13)
+                VisibleFrom >= 1_000_000_000_000) // more efficient than converting to string and checking length
+            {
+                VisibleFrom /= 1_000; // convert from ms to s by dropping last 3 digits
+            } else if (VisibleFrom < 1_000_000_000 || VisibleFrom >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
+            {
+                throw new Exception(message: "VisibleFrom is not a Unix timestamp (either in seconds or in milliseconds).");
+            }
+        }
         
     }
 }
