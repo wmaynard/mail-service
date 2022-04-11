@@ -10,306 +10,305 @@ using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.MailboxService.Services;
 
-namespace Rumble.Platform.MailboxService.Controllers
+namespace Rumble.Platform.MailboxService.Controllers;
+
+[ApiController, Route(template: "mail/admin"), RequireAuth]
+public class AdminController : PlatformController
 {
-    [ApiController, Route(template: "mail/admin"), RequireAuth]
-    public class AdminController : PlatformController
+    private readonly InboxService _inboxService;
+    private readonly GlobalMessageService _globalMessageService;
+
+    public AdminController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
     {
-        private readonly InboxService _inboxService;
-        private readonly GlobalMessageService _globalMessageService;
+        _inboxService = inboxService;
+        _globalMessageService = globalMessageService;
+    }
 
-        public AdminController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
+    [HttpGet, Route(template: "health"), NoAuth]
+    public override ActionResult HealthCheck()
+    {
+        return Ok(_inboxService.HealthCheckResponseObject, _globalMessageService.HealthCheckResponseObject);
+    }
+
+    [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
+    public ActionResult GlobalMessageList()
+    {
+        IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
+
+        return Ok(new {GlobalMessages = globalMessages}); // just an object for now
+    }
+
+    [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
+    public ObjectResult MessageSend()
+    {
+        List<string> accountIds = Require<List<string>>(key: "accountIds");
+        
+        // following modification needed because something in update to platform-common made it not pull values correctly for attachments
+        // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+        object messageData = Require<object>(key: "message");
+        string messageString = messageData.ToString();
+        
+        /*
+        int stringStart = messageString.IndexOf("attachments\":[") + 14;
+        int stringEnd = messageString.IndexOf("],\"expiration");
+        string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
+        string[] attachmentsSplit = attachmentsSubstring.Split(",");
+        List<Attachment> attachments = new List<Attachment>();
+        for (int i = 0; i < attachmentsSplit.Length / 2; i++)
         {
-            _inboxService = inboxService;
-            _globalMessageService = globalMessageService;
-        }
-
-        [HttpGet, Route(template: "health"), NoAuth]
-        public override ActionResult HealthCheck()
-        {
-            return Ok(_inboxService.HealthCheckResponseObject, _globalMessageService.HealthCheckResponseObject);
-        }
-
-        [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
-        public ActionResult GlobalMessageList()
-        {
-            IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
-
-            return Ok(new {GlobalMessages = globalMessages}); // just an object for now
-        }
-
-        [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult MessageSend()
-        {
-            List<string> accountIds = Require<List<string>>(key: "accountIds");
+            string quantityString = attachmentsSplit[2 * i];
+            int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
+            string typeString = attachmentsSplit[2 * i + 1];
+            string type = typeString.Substring(8, typeString.Length - 10);
             
-            // following modification needed because something in update to platform-common made it not pull values correctly for attachments
-            // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-            object messageData = Require<object>(key: "message");
-            string messageString = messageData.ToString();
-            
-            /*
-            int stringStart = messageString.IndexOf("attachments\":[") + 14;
-            int stringEnd = messageString.IndexOf("],\"expiration");
-            string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
-            string[] attachmentsSplit = attachmentsSubstring.Split(",");
-            List<Attachment> attachments = new List<Attachment>();
-            for (int i = 0; i < attachmentsSplit.Length / 2; i++)
+            Attachment attachment = new Attachment(quantity: quantity, type: type);
+            attachments.Add(attachment);
+        }
+        
+        // need to add the message in inbox for each accountId
+        Message message = Require<Message>(key: "message");
+        message.UpdateAttachments(attachments);
+        */
+
+        Message message = null;
+
+        try
+        {
+            message = JsonConvert.DeserializeObject<Message>(messageString);
+            message.Validate();
+        }
+        catch (Exception e)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
+            return Problem(detail: "Request body is malformed.");
+        }
+        try
+        {
+            _inboxService.SendTo(accountIds: accountIds, message: message);
+        }
+        catch (Exception)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds", data: $"Message: {message}, accountIds: {accountIds}.");
+        }
+        return Ok(message.ResponseObject);
+    }
+    
+    [HttpPost, Route(template: "messages/send/bulk"), RequireAuth(TokenType.ADMIN)]
+    public ObjectResult BulkSend()
+    {
+        List<string> accountIds = Require<List<string>>(key: "accountIds");
+        
+        // following modification needed because something in update to platform-common made it not pull values correctly for attachments
+        // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+        List<GenericData> messageData = Require<List<GenericData>>(key: "messages");
+        List<string> messageStrings = new List<string>();
+        foreach (GenericData message in messageData)
+        {
+            messageStrings.Add(message.JSON);
+        }
+
+        List<Message> messages = new List<Message>();
+
+        try
+        {
+            foreach (string messageString in messageStrings)
             {
-                string quantityString = attachmentsSplit[2 * i];
-                int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
-                string typeString = attachmentsSplit[2 * i + 1];
-                string type = typeString.Substring(8, typeString.Length - 10);
-                
-                Attachment attachment = new Attachment(quantity: quantity, type: type);
-                attachments.Add(attachment);
-            }
-            
-            // need to add the message in inbox for each accountId
-            Message message = Require<Message>(key: "message");
-            message.UpdateAttachments(attachments);
-            */
-
-            Message message = null;
-
-            try
-            {
-                message = JsonConvert.DeserializeObject<Message>(messageString);
+                Message message = JsonConvert.DeserializeObject<Message>(messageString);
                 message.Validate();
+                messages.Add(message);
             }
-            catch (Exception e)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
-                return Problem(detail: "Request body is malformed.");
-            }
-            try
-            {
-                _inboxService.SendTo(accountIds: accountIds, message: message);
-            }
-            catch (Exception)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds", data: $"Message: {message}, accountIds: {accountIds}.");
-            }
-            return Ok(message.ResponseObject);
+        }
+        catch (Exception e)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
+            return Problem(detail: "Request body is malformed.");
+        }
+        try
+        {
+            _inboxService.BulkSend(accountIds: accountIds, messages: messages);
+        }
+        catch (Exception)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Bulk messages could not be sent to accountIds", data: $"Messages: {messages}, accountIds: {accountIds}.");
+        }
+        return Ok(new {messages});
+    }
+
+    [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
+    public ObjectResult GlobalMessageSend()
+    {
+        
+        // following modification needed because something in update to platform-common made it not pull values correctly for attachments
+        // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
+        
+        object messageData = Require<object>(key: "globalMessage");
+        string messageString = messageData.ToString();
+        
+        /*
+        int stringStart = messageString.IndexOf("attachments\":[") + 14;
+        int stringEnd = messageString.IndexOf("],\"expiration");
+        string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
+        string[] attachmentsSplit = attachmentsSubstring.Split(",");
+        List<Attachment> attachments = new List<Attachment>();
+        for (int i = 0; i < attachmentsSplit.Length / 2; i++)
+        {
+            string quantityString = attachmentsSplit[2 * i];
+            int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
+            string typeString = attachmentsSplit[2 * i + 1];
+            string type = typeString.Substring(8, typeString.Length - 10);
+            
+            Attachment attachment = new Attachment(quantity: quantity, type: type);
+            attachments.Add(attachment);
         }
         
-        [HttpPost, Route(template: "messages/send/bulk"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult BulkSend()
+        // need to add the message in inbox for each accountId
+        GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
+        globalMessage.UpdateAttachments(attachments);
+        */
+
+        GlobalMessage globalMessage = null;
+
+        try
         {
-            List<string> accountIds = Require<List<string>>(key: "accountIds");
-            
-            // following modification needed because something in update to platform-common made it not pull values correctly for attachments
-            // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-            List<GenericData> messageData = Require<List<GenericData>>(key: "messages");
-            List<string> messageStrings = new List<string>();
-            foreach (GenericData message in messageData)
-            {
-                messageStrings.Add(message.JSON);
-            }
-
-            List<Message> messages = new List<Message>();
-
-            try
-            {
-                foreach (string messageString in messageStrings)
-                {
-                    Message message = JsonConvert.DeserializeObject<Message>(messageString);
-                    message.Validate();
-                    messages.Add(message);
-                }
-            }
-            catch (Exception e)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
-                return Problem(detail: "Request body is malformed.");
-            }
-            try
-            {
-                _inboxService.BulkSend(accountIds: accountIds, messages: messages);
-            }
-            catch (Exception)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Bulk messages could not be sent to accountIds", data: $"Messages: {messages}, accountIds: {accountIds}.");
-            }
-            return Ok(new {messages});
+            globalMessage = JsonConvert.DeserializeObject<GlobalMessage>(messageString);
+            globalMessage.Validate();
         }
-
-        [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageSend()
+        catch (Exception e)
         {
-            
-            // following modification needed because something in update to platform-common made it not pull values correctly for attachments
-            // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-            
-            object messageData = Require<object>(key: "globalMessage");
-            string messageString = messageData.ToString();
-            
-            /*
-            int stringStart = messageString.IndexOf("attachments\":[") + 14;
-            int stringEnd = messageString.IndexOf("],\"expiration");
-            string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
-            string[] attachmentsSplit = attachmentsSubstring.Split(",");
-            List<Attachment> attachments = new List<Attachment>();
-            for (int i = 0; i < attachmentsSplit.Length / 2; i++)
-            {
-                string quantityString = attachmentsSplit[2 * i];
-                int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
-                string typeString = attachmentsSplit[2 * i + 1];
-                string type = typeString.Substring(8, typeString.Length - 10);
-                
-                Attachment attachment = new Attachment(quantity: quantity, type: type);
-                attachments.Add(attachment);
-            }
-            
-            // need to add the message in inbox for each accountId
-            GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
-            globalMessage.UpdateAttachments(attachments);
-            */
-
-            GlobalMessage globalMessage = null;
-
-            try
-            {
-                globalMessage = JsonConvert.DeserializeObject<GlobalMessage>(messageString);
-                globalMessage.Validate();
-            }
-            catch (Exception e)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
-                return Problem(detail: "Request body is malformed.");
-            }
-            
-            _globalMessageService.Create(globalMessage);
-            return Ok(globalMessage.ResponseObject);
+            Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
+            return Problem(detail: "Request body is malformed.");
         }
-
-        [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageEdit()
-        {
-            string messageId = Require<string>(key: "messageId");
-            GlobalMessage message = _globalMessageService.Get(messageId);
-            
-            if (message == null)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global messageId: {messageId}");
-                return Problem(detail: $"Global message {messageId} not found.");
-            }
-            
-            GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
-            message.UpdatePrevious(copy);
-            // incorrect format for following inputs should default to previous entry
-            string subject = Optional<string>(key: "subject") ?? message.Subject;
-            string body = Optional<string>(key: "body") ?? message.Body;
-            GenericData[] attachmentsData = Optional<GenericData[]>(key: "attachments");
-            List<Attachment> attachments = message.Attachments;
-            if (attachmentsData != null)
-            {
-                attachments = new List<Attachment>();
-                foreach (GenericData ele in attachmentsData)
-                {
-                    string attachmentString = ele.JSON;
-                    attachments.Add(JsonConvert.DeserializeObject<Attachment>(attachmentString));
-                }
-            }
-            long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
-            long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
-            string icon = Optional<string>(key: "icon") ?? message.Icon;
-            string banner = Optional<string>(key: "banner") ?? message.Banner;
-            Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
-            string internalNote = Optional<string>(key: "internalNote") ?? message.InternalNote;
-            long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
-
-            message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
-                icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
-
-            try
-            {
-                message.Validate();
-            }
-            catch (Exception e)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Editing global message failed.", data: e.Message);
-                return Problem(detail: "Editing global message failed.");
-            }
-            
-            _inboxService.UpdateAll(id: messageId, edited: message);
-            _globalMessageService.Update(message);
-
-            return Ok(message.ResponseObject);
-        }
-
-        [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GlobalMessageExpire()
-        {
-            string messageId = Require<string>(key: "messageId");
-            GlobalMessage message = _globalMessageService.Get(messageId);
-
-            if (message == null)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to expire", data: $"Global messageId: {messageId}");
-                return Problem(detail: $"Global message {messageId} was not found.");
-            }
-
-            GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
-            message.UpdatePrevious(copy);
         
-            message.ExpireGlobal();
+        _globalMessageService.Create(globalMessage);
+        return Ok(globalMessage.ResponseObject);
+    }
+
+    [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(TokenType.ADMIN)]
+    public ObjectResult GlobalMessageEdit()
+    {
+        string messageId = Require<string>(key: "messageId");
+        GlobalMessage message = _globalMessageService.Get(messageId);
         
-            _inboxService.UpdateExpiration(id: messageId);
-            _globalMessageService.Update(message);
-            return Ok(message.ResponseObject);
-        }
-
-        [HttpPost, Route(template: "inbox"), RequireAuth(TokenType.ADMIN)]
-        public ObjectResult GetInboxAdmin()
+        if (message == null)
         {
-            string accountId = Require<string>(key: "accountId");
-            Inbox accountInbox = _inboxService.Get(accountId);
-
-            if (accountInbox == null)
-            {
-                return Problem(detail: "Account with accountId does not exist.");
-            }
-            
-            // updating global messages
-            GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
-                .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
-                .Where(message => !message.IsExpired)
-                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
-                .Select(message => message)
-                .ToArray();
-            try
-            {
-                accountInbox.Messages.AddRange(globals);
-                if (accountInbox.History == null)
-                {
-                    accountInbox.CreateHistory();
-                }
-                accountInbox.History.AddRange(globals);
-            }
-            catch (Exception)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
-            }
-            
-            List<Message> unexpiredMessages = accountInbox.Messages
-                .Where(message => !message.IsExpired)
-                .Select(message => message)
-                .OrderBy(message => message.Expiration)
-                .ToList();
-            accountInbox.UpdateMessages(unexpiredMessages);
-
-            _inboxService.Update(accountInbox);
-
-            List<Message> filteredMessages = accountInbox.Messages
-                .Where(message => message.VisibleFrom < Inbox.UnixTime)
-                .Select(message => message)
-                .ToList();
-            
-            Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
-            
-            return Ok(filteredInbox.ResponseObject);
+            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global messageId: {messageId}");
+            return Problem(detail: $"Global message {messageId} not found.");
         }
+        
+        GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
+        message.UpdatePrevious(copy);
+        // incorrect format for following inputs should default to previous entry
+        string subject = Optional<string>(key: "subject") ?? message.Subject;
+        string body = Optional<string>(key: "body") ?? message.Body;
+        GenericData[] attachmentsData = Optional<GenericData[]>(key: "attachments");
+        List<Attachment> attachments = message.Attachments;
+        if (attachmentsData != null)
+        {
+            attachments = new List<Attachment>();
+            foreach (GenericData ele in attachmentsData)
+            {
+                string attachmentString = ele.JSON;
+                attachments.Add(JsonConvert.DeserializeObject<Attachment>(attachmentString));
+            }
+        }
+        long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
+        long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
+        string icon = Optional<string>(key: "icon") ?? message.Icon;
+        string banner = Optional<string>(key: "banner") ?? message.Banner;
+        Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
+        string internalNote = Optional<string>(key: "internalNote") ?? message.InternalNote;
+        long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
+
+        message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
+            icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
+
+        try
+        {
+            message.Validate();
+        }
+        catch (Exception e)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Editing global message failed.", data: e.Message);
+            return Problem(detail: "Editing global message failed.");
+        }
+        
+        _inboxService.UpdateAll(id: messageId, edited: message);
+        _globalMessageService.Update(message);
+
+        return Ok(message.ResponseObject);
+    }
+
+    [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
+    public ObjectResult GlobalMessageExpire()
+    {
+        string messageId = Require<string>(key: "messageId");
+        GlobalMessage message = _globalMessageService.Get(messageId);
+
+        if (message == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to expire", data: $"Global messageId: {messageId}");
+            return Problem(detail: $"Global message {messageId} was not found.");
+        }
+
+        GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
+        message.UpdatePrevious(copy);
+    
+        message.ExpireGlobal();
+    
+        _inboxService.UpdateExpiration(id: messageId);
+        _globalMessageService.Update(message);
+        return Ok(message.ResponseObject);
+    }
+
+    [HttpPost, Route(template: "inbox"), RequireAuth(TokenType.ADMIN)]
+    public ObjectResult GetInboxAdmin()
+    {
+        string accountId = Require<string>(key: "accountId");
+        Inbox accountInbox = _inboxService.Get(accountId);
+
+        if (accountInbox == null)
+        {
+            return Problem(detail: "Account with accountId does not exist.");
+        }
+        
+        // updating global messages
+        GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
+            .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
+            .Where(message => !message.IsExpired)
+            .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
+            .Select(message => message)
+            .ToArray();
+        try
+        {
+            accountInbox.Messages.AddRange(globals);
+            if (accountInbox.History == null)
+            {
+                accountInbox.CreateHistory();
+            }
+            accountInbox.History.AddRange(globals);
+        }
+        catch (Exception)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
+        }
+        
+        List<Message> unexpiredMessages = accountInbox.Messages
+            .Where(message => !message.IsExpired)
+            .Select(message => message)
+            .OrderBy(message => message.Expiration)
+            .ToList();
+        accountInbox.UpdateMessages(unexpiredMessages);
+
+        _inboxService.Update(accountInbox);
+
+        List<Message> filteredMessages = accountInbox.Messages
+            .Where(message => message.VisibleFrom < Inbox.UnixTime)
+            .Select(message => message)
+            .ToList();
+        
+        Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
+        
+        return Ok(filteredInbox.ResponseObject);
     }
 }
 

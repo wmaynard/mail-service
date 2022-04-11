@@ -7,109 +7,108 @@ using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.Common.Web;
 using Timer = System.Timers.Timer;
 
-namespace Rumble.Platform.MailboxService.Services
+namespace Rumble.Platform.MailboxService.Services;
+
+public class InboxService : PlatformMongoService<Inbox>
 {
-    public class InboxService : PlatformMongoService<Inbox>
+    private readonly Timer _inboxTimer;
+
+    public void DeleteExpired() // removes old expired messages in inboxes
     {
-        private readonly Timer _inboxTimer;
-
-        public void DeleteExpired() // removes old expired messages in inboxes
-        {
-            //just keeping the ones that are not expired and are visible
-            long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable("INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
-            
-            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
-            
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > expireTime);
-            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, message => message.Expiration > expireTime);
-
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-
-            _collection.BulkWrite(listWrites);
-        }
-
-        private void CheckExpiredInbox(object sender, ElapsedEventArgs args)
-        {
-            _inboxTimer.Start();
-            try
-            {
-                DeleteExpired();
-            }
-            catch (Exception e)
-            {
-                Log.Error(owner: Owner.Nathan, message:"Failure to check expired messages.", data: $"{e.Message}");
-            }
-            _inboxTimer.Start();
-        }
+        //just keeping the ones that are not expired and are visible
+        long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable("INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
         
-        public InboxService() : base(collection: "inboxes")
-        {
-            _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable("INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600") * 1000) // check every hour
-            {
-                AutoReset = true
-            };
-            _inboxTimer.Elapsed += CheckExpiredInbox;
-            _inboxTimer.Start();
-        }
+        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
-        public override Inbox Get(string accountId)
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > expireTime);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, message => message.Expiration > expireTime);
+
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+
+        _collection.BulkWrite(listWrites);
+    }
+
+    private void CheckExpiredInbox(object sender, ElapsedEventArgs args)
+    {
+        _inboxTimer.Start();
+        try
         {
-            return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
+            DeleteExpired();
         }
-
-        public void UpdateAll(string id, GlobalMessage edited)
+        catch (Exception e)
         {
-            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
-            
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
-            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
-            FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
-            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1], edited);
-
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-            listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
-            _collection.BulkWrite(listWrites);
+            Log.Error(owner: Owner.Nathan, message:"Failure to check expired messages.", data: $"{e.Message}");
         }
-
-        public void UpdateExpiration(string id)
+        _inboxTimer.Start();
+    }
+    
+    public InboxService() : base(collection: "inboxes")
+    {
+        _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable("INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600") * 1000) // check every hour
         {
-            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
-            
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
-            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
-            FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
-            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1].Expiration, Inbox.UnixTime);
+            AutoReset = true
+        };
+        _inboxTimer.Elapsed += CheckExpiredInbox;
+        _inboxTimer.Start();
+    }
+    
+    public override Inbox Get(string accountId)
+    {
+        return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
+    }
 
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-            listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
-            _collection.BulkWrite(listWrites);
-        }
+    public void UpdateAll(string id, GlobalMessage edited)
+    {
+        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+        
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
+        FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1], edited);
 
-        public void SendTo(List<string> accountIds, Message message)
-        {
-            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
-            
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
-            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, message);
-            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Push(inbox => inbox.History, message);
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+        listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
+        _collection.BulkWrite(listWrites);
+    }
 
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
-            _collection.BulkWrite(listWrites);
-        }
+    public void UpdateExpiration(string id)
+    {
+        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+        
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Inbox.UnixTime);
+        FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1].Expiration, Inbox.UnixTime);
 
-        public void BulkSend(List<string> accountIds, List<Message> messages)
-        {
-            List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+        listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
+        _collection.BulkWrite(listWrites);
+    }
 
-            FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
-            UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PushEach(inbox => inbox.Messages, messages);
-            UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.PushEach(inbox => inbox.History, messages);
+    public void SendTo(List<string> accountIds, Message message)
+    {
+        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+        
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, message);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Push(inbox => inbox.History, message);
 
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-            listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
-            _collection.BulkWrite(listWrites);
-        }
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
+        _collection.BulkWrite(listWrites);
+    }
+
+    public void BulkSend(List<string> accountIds, List<Message> messages)
+    {
+        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PushEach(inbox => inbox.Messages, messages);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.PushEach(inbox => inbox.History, messages);
+
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
+        _collection.BulkWrite(listWrites);
     }
 }
 

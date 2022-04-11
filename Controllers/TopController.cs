@@ -4,31 +4,30 @@ using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Services;
 
-namespace Rumble.Platform.MailboxService.Controllers
-{
-    [ApiController, Route(template: "mail")]
-    public class TopController : PlatformController
-    {
-        private readonly InboxService _inboxService;
-        private readonly GlobalMessageService _globalMessageService;
-        public TopController(
-            InboxService inboxService,
-            GlobalMessageService globalMessageService,
-            IConfiguration config) : base(config)
-        {
-            _inboxService = inboxService;
-            _globalMessageService = globalMessageService;
-        }
+namespace Rumble.Platform.MailboxService.Controllers;
 
-        [HttpGet, Route(template: "health"), NoAuth]
-        
-        public override ActionResult HealthCheck()
-        {
-            return Ok(
-                _inboxService.HealthCheckResponseObject,
-                _globalMessageService.HealthCheckResponseObject
-            );
-        }
+[ApiController, Route(template: "mail")]
+public class TopController : PlatformController
+{
+    private readonly InboxService _inboxService;
+    private readonly GlobalMessageService _globalMessageService;
+    public TopController(
+        InboxService inboxService,
+        GlobalMessageService globalMessageService,
+        IConfiguration config) : base(config)
+    {
+        _inboxService = inboxService;
+        _globalMessageService = globalMessageService;
+    }
+
+    [HttpGet, Route(template: "health"), NoAuth]
+    
+    public override ActionResult HealthCheck()
+    {
+        return Ok(
+            _inboxService.HealthCheckResponseObject,
+            _globalMessageService.HealthCheckResponseObject
+        );
     }
 }
 

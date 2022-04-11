@@ -9,153 +9,152 @@ using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.MailboxService.Services;
 
-namespace Rumble.Platform.MailboxService.Controllers
+namespace Rumble.Platform.MailboxService.Controllers;
+
+[ApiController, Route(template: "mail/inbox"), RequireAuth]
+public class InboxController : PlatformController
 {
-    [ApiController, Route(template: "mail/inbox"), RequireAuth]
-    public class InboxController : PlatformController
+    private readonly InboxService _inboxService;
+    private readonly GlobalMessageService _globalMessageService;
+
+    public InboxController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
     {
-        private readonly InboxService _inboxService;
-        private readonly GlobalMessageService _globalMessageService;
+        _inboxService = inboxService;
+        _globalMessageService = globalMessageService;
+    }
 
-        public InboxController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
+    [HttpGet, Route(template: "health"), NoAuth]
+    public override ActionResult HealthCheck()
+    {
+        return Ok(_inboxService.HealthCheckResponseObject);
+    }
+
+    [HttpGet]
+    public ObjectResult GetInbox() {
+        Inbox accountInbox = _inboxService.Get(Token.AccountId);
+        
+        if (accountInbox == null) // means new account, need to call GetInbox() when account is created
         {
-            _inboxService = inboxService;
-            _globalMessageService = globalMessageService;
-        }
-
-        [HttpGet, Route(template: "health"), NoAuth]
-        public override ActionResult HealthCheck()
-        {
-            return Ok(_inboxService.HealthCheckResponseObject);
-        }
-
-        [HttpGet]
-        public ObjectResult GetInbox() {
-            Inbox accountInbox = _inboxService.Get(Token.AccountId);
-            
-            if (accountInbox == null) // means new account, need to call GetInbox() when account is created
-            {
-                GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
-                    .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
-                    .Where(message => !message.IsExpired)
-                    .Select(message => message)
-                    .OrderBy(message => message.Expiration)
-                    .ToArray();
-                accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>(), history: new List<Message>());
-                accountInbox.Messages.AddRange(globalMessages);
-                accountInbox.History.AddRange(globalMessages);
-                _inboxService.Create(accountInbox);
-                return Ok(accountInbox.ResponseObject);
-            }
-
-            // updating global messages
-            GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
-                .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
-                .Where(message => !message.IsExpired)
-                .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
-                .Select(message => message)
-                .ToArray();
-            try
-            {
-                accountInbox.Messages.AddRange(globals);
-                if (accountInbox.History == null)
-                {
-                    accountInbox.CreateHistory();
-                }
-                accountInbox.History.AddRange(globals);
-            }
-            catch (Exception)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
-            }
-            
-            List<Message> unexpiredMessages = accountInbox.Messages
+            GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
+                .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                 .Where(message => !message.IsExpired)
                 .Select(message => message)
                 .OrderBy(message => message.Expiration)
-                .ToList();
-            accountInbox.UpdateMessages(unexpiredMessages);
-
-            _inboxService.Update(accountInbox);
-
-            List<Message> filteredMessages = accountInbox.Messages
-                .Where(message => message.VisibleFrom < Inbox.UnixTime)
-                .Select(message => message)
-                .ToList();
-            
-            Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
-            
-            return Ok(filteredInbox.ResponseObject);
+                .ToArray();
+            accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>(), history: new List<Message>());
+            accountInbox.Messages.AddRange(globalMessages);
+            accountInbox.History.AddRange(globalMessages);
+            _inboxService.Create(accountInbox);
+            return Ok(accountInbox.ResponseObject);
         }
 
-        [HttpPatch, Route(template: "claim")]
-        public ObjectResult Claim()
+        // updating global messages
+        GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
+            .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
+            .Where(message => !message.IsExpired)
+            .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
+            .Select(message => message)
+            .ToArray();
+        try
         {
-            string messageId = Optional<string>(key: "messageId");
-            Inbox accountInbox = _inboxService.Get(Token.AccountId);
-            List<Message> claimed = new List<Message>();
-            if (messageId == null)
+            accountInbox.Messages.AddRange(globals);
+            if (accountInbox.History == null)
             {
-                // claim all
-                List<Message> messages = accountInbox.Messages;
-                foreach (Message message in messages)
+                accountInbox.CreateHistory();
+            }
+            accountInbox.History.AddRange(globals);
+        }
+        catch (Exception)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
+        }
+        
+        List<Message> unexpiredMessages = accountInbox.Messages
+            .Where(message => !message.IsExpired)
+            .Select(message => message)
+            .OrderBy(message => message.Expiration)
+            .ToList();
+        accountInbox.UpdateMessages(unexpiredMessages);
+
+        _inboxService.Update(accountInbox);
+
+        List<Message> filteredMessages = accountInbox.Messages
+            .Where(message => message.VisibleFrom < Inbox.UnixTime)
+            .Select(message => message)
+            .ToList();
+        
+        Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
+        
+        return Ok(filteredInbox.ResponseObject);
+    }
+
+    [HttpPatch, Route(template: "claim")]
+    public ObjectResult Claim()
+    {
+        string messageId = Optional<string>(key: "messageId");
+        Inbox accountInbox = _inboxService.Get(Token.AccountId);
+        List<Message> claimed = new List<Message>();
+        if (messageId == null)
+        {
+            // claim all
+            List<Message> messages = accountInbox.Messages;
+            foreach (Message message in messages)
+            {
+                if (message.Status == 0)
                 {
-                    if (message.Status == 0)
+                    try
                     {
+                        message.UpdateClaimed();
+                        claimed.Add(message);
+                        Message record = accountInbox.History.Find(history => history.Id == message.Id);
                         try
                         {
-                            message.UpdateClaimed();
-                            claimed.Add(message);
-                            Message record = accountInbox.History.Find(history => history.Id == message.Id);
-                            try
-                            {
-                                record.UpdateClaimed();
-                            }
-                            catch (Exception e)
-                            {
-                                Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
-                            }
+                            record.UpdateClaimed();
                         }
                         catch (Exception e)
                         {
-                            Log.Error(owner: Owner.Nathan, message: "Error occured while claiming all messages.", data: $"{e.Message}");
+                            Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
                         }
-                    }
-
-                    _inboxService.Update(accountInbox);
-                }
-            }
-            else
-            {
-                // claim one
-                Message message = accountInbox.Messages.Find(message => message.Id == messageId);
-                try
-                {
-                    if (message == null)
-                    {
-                        throw new Exception(message: $"Message {messageId} was not found while attempting to claim for accountId {Token.AccountId}.)");
-                    }
-                    message.UpdateClaimed();
-                    Message record = accountInbox.History.Find(history => history.Id == message.Id);
-                    try
-                    {
-                        record.UpdateClaimed();
                     }
                     catch (Exception e)
                     {
-                        Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
+                        Log.Error(owner: Owner.Nathan, message: "Error occured while claiming all messages.", data: $"{e.Message}");
                     }
-                    claimed.Add(message);
-                    _inboxService.Update(accountInbox);
+                }
+
+                _inboxService.Update(accountInbox);
+            }
+        }
+        else
+        {
+            // claim one
+            Message message = accountInbox.Messages.Find(message => message.Id == messageId);
+            try
+            {
+                if (message == null)
+                {
+                    throw new Exception(message: $"Message {messageId} was not found while attempting to claim for accountId {Token.AccountId}.)");
+                }
+                message.UpdateClaimed();
+                Message record = accountInbox.History.Find(history => history.Id == message.Id);
+                try
+                {
+                    record.UpdateClaimed();
                 }
                 catch (Exception e)
                 {
-                    Log.Error(owner: Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
-                    return Problem(e.Message);
+                    Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
                 }
+                claimed.Add(message);
+                _inboxService.Update(accountInbox);
             }
-            return Ok(new {claimed = claimed});
+            catch (Exception e)
+            {
+                Log.Error(owner: Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
+                return Problem(e.Message);
+            }
         }
+        return Ok(new {claimed = claimed});
     }
 }
 
