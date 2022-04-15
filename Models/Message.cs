@@ -1,8 +1,10 @@
 using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models;
@@ -178,7 +180,7 @@ public class Message : PlatformCollectionDocument
             VisibleFrom >= 1_000_000_000_000) // more efficient than converting to string and checking length
         {
             VisibleFrom /= 1_000; // convert from ms to s by dropping last 3 digits
-        } else if (VisibleFrom < 1_000_000_000 || VisibleFrom >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
+        } else if (VisibleFrom >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
         {
             throw new Exception(message: "VisibleFrom is not a Unix timestamp (either in seconds or in milliseconds).");
         }
