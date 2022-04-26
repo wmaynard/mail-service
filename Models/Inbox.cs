@@ -34,6 +34,9 @@ public class Inbox : PlatformCollectionDocument
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_HISTORY)]
     public List<Message> History { get; private set; }
 
+    [JsonConstructor]
+    public Inbox() { }
+
     public Inbox(string aid, List<Message> messages, List<Message> history, long timestamp = 0, string id = null)
     {
         AccountId = aid;

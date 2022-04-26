@@ -30,7 +30,7 @@ public class AdminController : PlatformController
         return Ok(_inboxService.HealthCheckResponseObject, _globalMessageService.HealthCheckResponseObject);
     }
 
-    [HttpGet, Route(template: "global/messages"), RequireAuth(TokenType.ADMIN)]
+    [HttpGet, Route(template: "global/messages"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ActionResult GlobalMessageList()
     {
         IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
@@ -38,7 +38,7 @@ public class AdminController : PlatformController
         return Ok(new {GlobalMessages = globalMessages}); // just an object for now
     }
 
-    [HttpPost, Route(template: "messages/send"), RequireAuth(TokenType.ADMIN)]
+    [HttpPost, Route(template: "messages/send"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ObjectResult MessageSend()
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
@@ -93,10 +93,11 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
     
-    [HttpPost, Route(template: "messages/send/bulk"), RequireAuth(TokenType.ADMIN)]
+    [HttpPost, Route(template: "messages/send/bulk"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ObjectResult BulkSend()
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
+        Inbox inbox = Require<Inbox>("inbox");
         
         // following modification needed because something in update to platform-common made it not pull values correctly for attachments
         // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
@@ -134,7 +135,7 @@ public class AdminController : PlatformController
         return Ok(new {messages});
     }
 
-    [HttpPost, Route(template: "global/messages/send"), RequireAuth(TokenType.ADMIN)]
+    [HttpPost, Route(template: "global/messages/send"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ObjectResult GlobalMessageSend()
     {
         
@@ -183,7 +184,7 @@ public class AdminController : PlatformController
         return Ok(globalMessage.ResponseObject);
     }
 
-    [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(TokenType.ADMIN)]
+    [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ObjectResult GlobalMessageEdit()
     {
         string messageId = Require<string>(key: "messageId");
@@ -238,7 +239,7 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
 
-    [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(TokenType.ADMIN)]
+    [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ObjectResult GlobalMessageExpire()
     {
         string messageId = Require<string>(key: "messageId");
@@ -260,7 +261,7 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
 
-    [HttpPost, Route(template: "inbox"), RequireAuth(TokenType.ADMIN)]
+    [HttpPost, Route(template: "inbox"), RequireAuth(AuthType.ADMIN_TOKEN)]
     public ObjectResult GetInboxAdmin()
     {
         string accountId = Require<string>(key: "accountId");
