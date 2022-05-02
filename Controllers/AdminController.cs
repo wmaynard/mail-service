@@ -97,7 +97,6 @@ public class AdminController : PlatformController
     public ObjectResult BulkSend()
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
-        Inbox inbox = Require<Inbox>("inbox");
         
         // following modification needed because something in update to platform-common made it not pull values correctly for attachments
         // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
