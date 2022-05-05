@@ -13,4 +13,6 @@ public class TopController : PlatformController
     private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
 #pragma warning restore
+    
+    // /health is handled by the base PlatformController and HealthService.
 }

@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 
@@ -43,17 +44,15 @@ public class Inbox : PlatformCollectionDocument
         AccountId = aid;
         Messages = messages;
         Timestamp = timestamp == 0 ? UnixTime : timestamp;
-        History = history;
+        History = history 
+            ?? messages?.Copy() 
+            ?? new List<Message>(); // This might (?) be able to replace the CreateHistory() method.
+        
         if (id != null)
-        {
             Id = id;
-        };
     }
-
-    public void UpdateMessages(List<Message> messages)
-    {
-        Messages = messages;
-    }
+    
+    public void UpdateMessages(List<Message> messages) => Messages = messages;  // This is good candidate for exposing the setter property to public - then this method can be removed.
 
     // workaround for if inbox was created without history
     public void CreateHistory()
