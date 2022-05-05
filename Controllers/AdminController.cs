@@ -5,6 +5,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -12,33 +14,24 @@ using Rumble.Platform.MailboxService.Services;
 
 namespace Rumble.Platform.MailboxService.Controllers;
 
-[ApiController, Route(template: "mail/admin"), RequireAuth]
+[ApiController, Route(template: "mail/admin"), RequireAuth(AuthType.ADMIN_TOKEN), UseMongoTransaction]
 public class AdminController : PlatformController
 {
+#pragma warning disable
     private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
+#pragma warning restore
 
-    public AdminController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
-    {
-        _inboxService = inboxService;
-        _globalMessageService = globalMessageService;
-    }
 
-    [HttpGet, Route(template: "health"), NoAuth]
-    public override ActionResult HealthCheck()
-    {
-        return Ok(_inboxService.HealthCheckResponseObject, _globalMessageService.HealthCheckResponseObject);
-    }
-
-    [HttpGet, Route(template: "global/messages"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpGet, Route(template: "global/messages")]
     public ActionResult GlobalMessageList()
     {
         IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
-        return Ok(new {GlobalMessages = globalMessages}); // just an object for now
+        return Ok(new { GlobalMessages = globalMessages }); // just an object for now
     }
 
-    [HttpPost, Route(template: "messages/send"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpPost, Route(template: "messages/send")]
     public ObjectResult MessageSend()
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
@@ -93,48 +86,24 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
     
-    [HttpPost, Route(template: "messages/send/bulk"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpPost, Route(template: "messages/send/bulk")]
     public ObjectResult BulkSend()
     {
-        List<string> accountIds = Require<List<string>>(key: "accountIds");
-        
-        // following modification needed because something in update to platform-common made it not pull values correctly for attachments
-        // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-        List<GenericData> messageData = Require<List<GenericData>>(key: "messages");
-        List<string> messageStrings = new List<string>();
-        foreach (GenericData message in messageData)
-        {
-            messageStrings.Add(message.JSON);
-        }
-
-        List<Message> messages = new List<Message>();
+        BulkMessage[] messages = Require<BulkMessage[]>(key: "messages");
 
         try
         {
-            foreach (string messageString in messageStrings)
-            {
-                Message message = JsonConvert.DeserializeObject<Message>(messageString);
-                message.Validate();
-                messages.Add(message);
-            }
+            _inboxService.BulkSend(messages);
         }
         catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
-            return Problem(detail: "Request body is malformed.");
+            throw new PlatformException("Bulk messages count not be sent.", inner: e);
         }
-        try
-        {
-            _inboxService.BulkSend(accountIds: accountIds, messages: messages);
-        }
-        catch (Exception)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Bulk messages could not be sent to accountIds", data: $"Messages: {messages}, accountIds: {accountIds}.");
-        }
-        return Ok(new {messages});
+        
+        return Ok(new {Messages = messages});
     }
 
-    [HttpPost, Route(template: "global/messages/send"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
         
@@ -183,7 +152,7 @@ public class AdminController : PlatformController
         return Ok(globalMessage.ResponseObject);
     }
 
-    [HttpPatch, Route(template: "global/messages/edit"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpPatch, Route(template: "global/messages/edit")]
     public ObjectResult GlobalMessageEdit()
     {
         string messageId = Require<string>(key: "messageId");
@@ -194,8 +163,8 @@ public class AdminController : PlatformController
             Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global messageId: {messageId}");
             return Problem(detail: $"Global message {messageId} not found.");
         }
-        
-        GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
+
+        GlobalMessage copy = message.Copy(); // circular reference otherwise
         message.UpdatePrevious(copy);
         // incorrect format for following inputs should default to previous entry
         string subject = Optional<string>(key: "subject") ?? message.Subject;
@@ -238,7 +207,7 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
 
-    [HttpPatch, Route(template: "global/messages/expire"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpPatch, Route(template: "global/messages/expire")]
     public ObjectResult GlobalMessageExpire()
     {
         string messageId = Require<string>(key: "messageId");
@@ -250,7 +219,7 @@ public class AdminController : PlatformController
             return Problem(detail: $"Global message {messageId} was not found.");
         }
 
-        GlobalMessage copy = GlobalMessage.CreateCopy(message); // circular reference otherwise
+        GlobalMessage copy = message.Copy(); // circular reference otherwise
         message.UpdatePrevious(copy);
     
         message.ExpireGlobal();
@@ -260,7 +229,7 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
 
-    [HttpPost, Route(template: "inbox"), RequireAuth(AuthType.ADMIN_TOKEN)]
+    [HttpPost, Route(template: "inbox")]
     public ObjectResult GetInboxAdmin()
     {
         string accountId = Require<string>(key: "accountId");

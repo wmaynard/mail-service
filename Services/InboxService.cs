@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Timers;
 using MongoDB.Driver;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.Common.Web;
@@ -85,6 +86,11 @@ public class InboxService : PlatformMongoService<Inbox>
         _collection.BulkWrite(listWrites);
     }
 
+    public void SendTo(string accountId, Message message) => _collection.FindOneAndUpdate(
+        filter: inbox => inbox.AccountId == accountId,
+        update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
+    );
+
     public void SendTo(List<string> accountIds, Message message)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
@@ -96,6 +102,12 @@ public class InboxService : PlatformMongoService<Inbox>
         listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
         listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
         _collection.BulkWrite(listWrites);
+    }
+    
+    public void BulkSend(IEnumerable<BulkMessage> messages)
+    {
+        foreach (BulkMessage message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
+            SendTo(message.Recipient, message);
     }
 
     public void BulkSend(List<string> accountIds, List<Message> messages)

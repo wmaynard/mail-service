@@ -14,22 +14,12 @@ namespace Rumble.Platform.MailboxService.Controllers;
 [ApiController, Route(template: "mail/inbox"), RequireAuth]
 public class InboxController : PlatformController
 {
+#pragma warning disable
     private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
+#pragma warning restore
 
-    public InboxController(InboxService inboxService, GlobalMessageService globalMessageService, IConfiguration config) : base(config)
-    {
-        _inboxService = inboxService;
-        _globalMessageService = globalMessageService;
-    }
-
-    [HttpGet, Route(template: "health"), NoAuth]
-    public override ActionResult HealthCheck()
-    {
-        return Ok(_inboxService.HealthCheckResponseObject);
-    }
-
-    [HttpGet]
+    [HttpGet, HealthMonitor(weight: 1)]
     public ObjectResult GetInbox() {
         Inbox accountInbox = _inboxService.Get(Token.AccountId);
         

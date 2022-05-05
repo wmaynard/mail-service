@@ -9,28 +9,8 @@ namespace Rumble.Platform.MailboxService.Controllers;
 [ApiController, Route(template: "mail")]
 public class TopController : PlatformController
 {
+#pragma warning disable
     private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
-    public TopController(
-        InboxService inboxService,
-        GlobalMessageService globalMessageService,
-        IConfiguration config) : base(config)
-    {
-        _inboxService = inboxService;
-        _globalMessageService = globalMessageService;
-    }
-
-    [HttpGet, Route(template: "health"), NoAuth]
-    
-    public override ActionResult HealthCheck()
-    {
-        return Ok(
-            _inboxService.HealthCheckResponseObject,
-            _globalMessageService.HealthCheckResponseObject
-        );
-    }
+#pragma warning restore
 }
-
-// All non-health endpoints should validate tokens for authorization.
-// TopController
-// - GET /mail/health

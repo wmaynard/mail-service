@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Newtonsoft.Json;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models;

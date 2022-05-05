@@ -15,13 +15,14 @@ public class GlobalMessage : Message
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
     public long? ForAccountsBefore { get; private set; }
 
-    public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
-        long visibleFrom, string icon, string banner, StatusType status, string internalNote, long? forAccountsBefore = null)
-        : base(subject: subject, body: body, attachments: attachments, expiration: expiration,
-            visibleFrom: visibleFrom, icon: icon, banner: banner, status: status, internalNote: internalNote)
-    {
-        ForAccountsBefore = forAccountsBefore;
-    }
+
+    // public GlobalMessage(string subject, string body, List<Attachment> attachments, long expiration,
+    //     long visibleFrom, string icon, string banner, StatusType status, string internalNote, long? forAccountsBefore = null)
+    //     : base(subject: subject, body: body, attachments: attachments, expiration: expiration,
+    //         visibleFrom: visibleFrom, icon: icon, banner: banner, status: status, internalNote: internalNote)
+    // {
+    //     ForAccountsBefore = forAccountsBefore;
+    // }
     
     public void UpdateGlobal(string subject, string body, List<Attachment> attachments, long expiration,
         long visibleFrom, string icon, string banner, StatusType status, string internalNote, long? forAccountsBefore = null)
@@ -36,23 +37,23 @@ public class GlobalMessage : Message
         ExpireBase();
     }
     
-    public static GlobalMessage CreateCopy(GlobalMessage message)
-    {
-        string subject = message.Subject;
-        string body = message.Body;
-        List<Attachment> attachments = message.Attachments;
-        long expiration = message.Expiration;
-        long visibleFrom = message.VisibleFrom;
-        string icon = message.Icon;
-        string banner = message.Banner;
-        StatusType status = message.Status;
-        string internalNote = message.InternalNote;
-        long? forAccountsBefore = message.ForAccountsBefore;
-        GlobalMessage copy = new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
-            icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
-        copy.SetId(message.Id);
-        return copy;
-    }
+    // public static GlobalMessage CreateCopy(GlobalMessage message)
+    // {
+    //     string subject = message.Subject;
+    //     string body = message.Body;
+    //     List<Attachment> attachments = message.Attachments;
+    //     long expiration = message.Expiration;
+    //     long visibleFrom = message.VisibleFrom;
+    //     string icon = message.Icon;
+    //     string banner = message.Banner;
+    //     StatusType status = message.Status;
+    //     string internalNote = message.InternalNote;
+    //     long? forAccountsBefore = message.ForAccountsBefore;
+    //     GlobalMessage copy = new GlobalMessage(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom, 
+    //         icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
+    //     copy.SetId(message.Id);
+    //     return copy;
+    // }
 }
 
 // GlobalMessage : Message

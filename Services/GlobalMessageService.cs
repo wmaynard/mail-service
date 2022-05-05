@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using MongoDB.Driver;
+using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
 

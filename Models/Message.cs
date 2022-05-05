@@ -5,6 +5,8 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Models;
+using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models;
@@ -16,6 +18,7 @@ public class Message : PlatformCollectionDocument
     internal const string DB_KEY_BODY = "body";
     internal const string DB_KEY_ATTACHMENTS = "attchmnts";
     internal const string DB_KEY_TIMESTAMP = "tmestmp";
+    internal const string DB_KEY_DATA = "data";
     internal const string DB_KEY_EXPIRATION = "expire";
     internal const string DB_KEY_VISIBLE_FROM = "visible";
     internal const string DB_KEY_ICON = "icon";
@@ -27,6 +30,7 @@ public class Message : PlatformCollectionDocument
     public const string FRIENDLY_KEY_SUBJECT = "subject";
     public const string FRIENDLY_KEY_BODY = "body";
     public const string FRIENDLY_KEY_ATTACHMENTS = "attachments";
+    public const string FRIENDLY_KEY_DATA = "data";
     public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
     public const string FRIENDLY_KEY_EXPIRATION = "expiration";
     public const string FRIENDLY_KEY_VISIBLE_FROM = "visibleFrom";
@@ -47,6 +51,10 @@ public class Message : PlatformCollectionDocument
     [BsonElement(DB_KEY_ATTACHMENTS)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ATTACHMENTS)]
     public List<Attachment> Attachments { get; private set;}
+    
+    [BsonElement(DB_KEY_DATA), BsonIgnoreIfNull]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_DATA), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public GenericData Data { get; set; }
     
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
@@ -72,7 +80,13 @@ public class Message : PlatformCollectionDocument
     [BsonElement(DB_KEY_STATUS)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_STATUS)]
     public StatusType Status { get; private set; }
-    
+     
+    // This field generates telemetry entries when players claim their messages.
+    // This comes in to economysource.transaction_context and is used in SQL queries for analysis.
+    // Examples include:
+    // 
+    // Admin Portal:  MSG-62215869806324548d612eb4 CSGrant-Reason-release_check-03-03-2
+    // Leaderboards:  MSG-62215869806324548d612eb4 LB-621d7b50ed456b3870d05a4c Tier-0 Score-188 Rank-1
     [BsonElement(DB_KEY_INTERNAL_NOTE), BsonDefaultValue(null)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_INTERNAL_NOTE)]
     public string InternalNote { get; private set; }
@@ -85,29 +99,38 @@ public class Message : PlatformCollectionDocument
     [JsonIgnore]
     public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
-    public Message(string subject, string body, List<Attachment> attachments, long expiration, long visibleFrom, string icon, string banner, StatusType status, string internalNote)
+    public Message()
     {
-        Subject = subject;
-        Body = body;
-        Attachments = attachments;
-        Timestamp = UnixTime;
-        Expiration = expiration;
-        VisibleFrom = visibleFrom;
-        Icon = icon;
-        if (icon == null)
-        {
-            Icon = "";
-        }
-        Banner = banner;
-        if (banner == null)
-        {
-            Banner = "";
-        }
-        Status = status;
-        InternalNote = internalNote;
+        Icon = "";
+        Banner = "";
         PreviousVersions = new List<Message>();
-        Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
+        Id = ObjectId.GenerateNewId().ToString(); // Will: probably not needed; mongo assigns one when inserting (but not upserting).
+        Timestamp = UnixTime;
     }
+    //
+    // public Message()
+    // {
+    //     Subject = subject;
+    //     Body = body;
+    //     Attachments = attachments;
+    //     Timestamp = UnixTime;
+    //     Expiration = expiration;
+    //     VisibleFrom = visibleFrom;
+    //     Icon = icon;
+    //     if (icon == null)
+    //     {
+    //         Icon = "";
+    //     }
+    //     Banner = banner;
+    //     if (banner == null)
+    //     {
+    //         Banner = "";
+    //     }
+    //     Status = status;
+    //     InternalNote = internalNote;
+    //     PreviousVersions = new List<Message>();
+    //     Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
+    // }
     
     public void UpdateBase(string subject, string body, List<Attachment> attachments, long expiration,
         long visibleFrom, string icon, string banner, StatusType status, string internalNote)
