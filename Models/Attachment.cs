@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
-using Newtonsoft.Json;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Web;
 
@@ -39,10 +38,12 @@ public class Attachment : PlatformDataModel
         Type = type;
         RewardId = rewardId;
         Quantity = quantity;
+        
+        // TODO
+        // Probably better to throw an exception when quantity is 0.  However, I don't know if there's a specific use case for this.
+        // Letting a bad request through by defaulting the value to a valid one may be more confusing than seeing errors.
         if (quantity == 0)
-        {
             Quantity = 1;
-        }
     }
 }
 

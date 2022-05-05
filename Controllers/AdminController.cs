@@ -2,8 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
@@ -36,54 +34,22 @@ public class AdminController : PlatformController
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
         
+        // TODO: Review below comment to see if it's still accurate
         // following modification needed because something in update to platform-common made it not pull values correctly for attachments
         // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-        object messageData = Require<object>(key: "message");
-        string messageString = messageData.ToString();
-        
-        /*
-        int stringStart = messageString.IndexOf("attachments\":[") + 14;
-        int stringEnd = messageString.IndexOf("],\"expiration");
-        string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
-        string[] attachmentsSplit = attachmentsSubstring.Split(",");
-        List<Attachment> attachments = new List<Attachment>();
-        for (int i = 0; i < attachmentsSplit.Length / 2; i++)
-        {
-            string quantityString = attachmentsSplit[2 * i];
-            int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
-            string typeString = attachmentsSplit[2 * i + 1];
-            string type = typeString.Substring(8, typeString.Length - 10);
-            
-            Attachment attachment = new Attachment(quantity: quantity, type: type);
-            attachments.Add(attachment);
-        }
-        
-        // need to add the message in inbox for each accountId
+
         Message message = Require<Message>(key: "message");
-        message.UpdateAttachments(attachments);
-        */
+        message.Validate();
 
-        Message message = null;
-
-        try
-        {
-            message = JsonConvert.DeserializeObject<Message>(messageString);
-            message.Validate();
-        }
-        catch (Exception e)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
-            return Problem(detail: "Request body is malformed.");
-        }
         try
         {
             _inboxService.SendTo(accountIds: accountIds, message: message);
         }
         catch (Exception)
         {
-            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds", data: $"Message: {message}, accountIds: {accountIds}.");
+            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds");
         }
-        return Ok(message.ResponseObject);
+        return Ok();
     }
     
     [HttpPost, Route(template: "messages/send/bulk")]
@@ -93,6 +59,8 @@ public class AdminController : PlatformController
 
         try
         {
+            if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
+                throw new PlatformException($"Missing key: '{BulkMessage.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
             _inboxService.BulkSend(messages);
         }
         catch (Exception e)
@@ -109,52 +77,31 @@ public class AdminController : PlatformController
         
         // following modification needed because something in update to platform-common made it not pull values correctly for attachments
         // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-        
-        object messageData = Require<object>(key: "globalMessage");
-        string messageString = messageData.ToString();
-        
-        /*
-        int stringStart = messageString.IndexOf("attachments\":[") + 14;
-        int stringEnd = messageString.IndexOf("],\"expiration");
-        string attachmentsSubstring = messageString.Substring(stringStart, stringEnd - stringStart);
-        string[] attachmentsSplit = attachmentsSubstring.Split(",");
-        List<Attachment> attachments = new List<Attachment>();
-        for (int i = 0; i < attachmentsSplit.Length / 2; i++)
-        {
-            string quantityString = attachmentsSplit[2 * i];
-            int quantity = Int32.Parse(quantityString.Substring(12, quantityString.Length - 12));
-            string typeString = attachmentsSplit[2 * i + 1];
-            string type = typeString.Substring(8, typeString.Length - 10);
-            
-            Attachment attachment = new Attachment(quantity: quantity, type: type);
-            attachments.Add(attachment);
-        }
-        
-        // need to add the message in inbox for each accountId
-        GlobalMessage globalMessage = Require<GlobalMessage>(key: "globalMessage");
-        globalMessage.UpdateAttachments(attachments);
-        */
 
-        GlobalMessage globalMessage = null;
-
-        try
-        {
-            globalMessage = JsonConvert.DeserializeObject<GlobalMessage>(messageString);
-            globalMessage.Validate();
-        }
-        catch (Exception e)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Malformed request body.", data: $"Message data: {messageData}, {e.Message}");
-            return Problem(detail: "Request body is malformed.");
-        }
+        GlobalMessage message = Require<GlobalMessage>(key: "globalMessage");
+        message.Validate();
         
-        _globalMessageService.Create(globalMessage);
-        return Ok(globalMessage.ResponseObject);
+        _globalMessageService.Create(message);
+        
+        return Ok();
     }
 
     [HttpPatch, Route(template: "global/messages/edit")]
     public ObjectResult GlobalMessageEdit()
     {
+        // TODO: Refactor this endpoint
+        // It looks like this endpoint is parsing every field that can be updated.  I would simplify this to make it more readable.
+        // This can probably all be accomplished in just a couple of lines.  Ideally, it might look like:
+        //
+        // GlobalMessage updatedMessage = Require<GlobalMessage>(key: "message");
+        //
+        // if (string.isNullOrEmpty(updatedMessage.Id))
+        //     throw new PlatformException(message: "Message updates require an ID.");
+        //
+        // _globalMessageService.Update(updatedMessage);
+        //
+        // This may have some side effects on how existing requests are structured.
+        
         string messageId = Require<string>(key: "messageId");
         GlobalMessage message = _globalMessageService.Get(messageId);
         
@@ -169,17 +116,18 @@ public class AdminController : PlatformController
         // incorrect format for following inputs should default to previous entry
         string subject = Optional<string>(key: "subject") ?? message.Subject;
         string body = Optional<string>(key: "body") ?? message.Body;
-        GenericData[] attachmentsData = Optional<GenericData[]>(key: "attachments");
-        List<Attachment> attachments = message.Attachments;
-        if (attachmentsData != null)
-        {
-            attachments = new List<Attachment>();
-            foreach (GenericData ele in attachmentsData)
-            {
-                string attachmentString = ele.JSON;
-                attachments.Add(JsonConvert.DeserializeObject<Attachment>(attachmentString));
-            }
-        }
+        // GenericData[] attachmentsData = Optional<GenericData[]>(key: "attachments");
+        Attachment[] attachments = Optional<Attachment[]>(key: "attachments");
+        // List<Attachment> attachments = message.Attachments;
+        // if (attachmentsData != null)
+        // {
+        //     attachments = new List<Attachment>();
+        //     foreach (GenericData ele in attachmentsData)
+        //     {
+        //         string attachmentString = ele.JSON;
+        //         attachments.Add(JsonConvert.DeserializeObject<Attachment>(attachmentString));
+        //     }
+        // }
         long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
         long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
         string icon = Optional<string>(key: "icon") ?? message.Icon;
@@ -222,7 +170,7 @@ public class AdminController : PlatformController
         GlobalMessage copy = message.Copy(); // circular reference otherwise
         message.UpdatePrevious(copy);
     
-        message.ExpireGlobal();
+        message.Expire();
     
         _inboxService.UpdateExpiration(id: messageId);
         _globalMessageService.Update(message);

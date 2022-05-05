@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -107,37 +108,14 @@ public class Message : PlatformCollectionDocument
         Id = ObjectId.GenerateNewId().ToString(); // Will: probably not needed; mongo assigns one when inserting (but not upserting).
         Timestamp = UnixTime;
     }
-    //
-    // public Message()
-    // {
-    //     Subject = subject;
-    //     Body = body;
-    //     Attachments = attachments;
-    //     Timestamp = UnixTime;
-    //     Expiration = expiration;
-    //     VisibleFrom = visibleFrom;
-    //     Icon = icon;
-    //     if (icon == null)
-    //     {
-    //         Icon = "";
-    //     }
-    //     Banner = banner;
-    //     if (banner == null)
-    //     {
-    //         Banner = "";
-    //     }
-    //     Status = status;
-    //     InternalNote = internalNote;
-    //     PreviousVersions = new List<Message>();
-    //     Id = ObjectId.GenerateNewId().ToString(); // potential overlap with GlobalMessage?
-    // }
     
-    public void UpdateBase(string subject, string body, List<Attachment> attachments, long expiration,
+    // TODO: This can probably be removed once the update endpoint is refactored.
+    public void UpdateBase(string subject, string body, IEnumerable<Attachment> attachments, long expiration,
         long visibleFrom, string icon, string banner, StatusType status, string internalNote)
     {
         Subject = subject;
         Body = body;
-        Attachments = attachments;
+        Attachments = attachments.ToList();
         Timestamp = UnixTime;
         Expiration = expiration;
         VisibleFrom = visibleFrom;
@@ -147,27 +125,13 @@ public class Message : PlatformCollectionDocument
         InternalNote = internalNote;
     }
 
-    public void ExpireBase()
-    {
-        Expiration = UnixTime;
-    }
+    public void Expire() => Expiration = UnixTime;
 
-    public void UpdateClaimed()
-    {
-        if (Status == StatusType.UNCLAIMED)
-        {
-            Status = StatusType.CLAIMED;
-        }
-        else
-        {
-            throw new Exception(message:$"Message {Id} has already been claimed!");
-        }
-    }
-
-    public void RemovePrevious()
-    {
-        PreviousVersions = null;
-    }
+    public void UpdateClaimed() => Status = (Status == StatusType.UNCLAIMED)
+        ? StatusType.CLAIMED
+        : throw new PlatformException(message:$"Message {Id} has already been claimed!");
+    
+    public void RemovePrevious() => PreviousVersions = null;
 
     public void UpdatePrevious(Message message)
     {
@@ -177,36 +141,20 @@ public class Message : PlatformCollectionDocument
         PreviousVersions.AddRange(oldPrevious);
     }
 
-    public void SetId(string id)
-    {
-        Id = id;
-    }
-
     public void Validate() // add future validations here
     {
-        if (Timestamp < 10_000_000_000_000 && Timestamp >= 1_000_000_000_000) // more efficient than converting to string and checking length
+        // DRY - don't repeat yourself
+        long ConvertUnixMStoS(long value)
         {
-            Timestamp /= 1_000; // convert from ms to s by dropping last 3 digits
-        } else if (Timestamp < 1_000_000_000 || Timestamp >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
-        {
-            throw new Exception(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
+            if (value < 10_000_000_000_000 && value >= 1_000_000_000_000) // more efficient than converting to string and checking length
+                return value / 1_000;                                     // convert from ms to s by dropping last 3 digits
+            if (value < 1_000_000_000 || value >= 10_000_000_000)         // in case neither ms or s unix time (not 13 or 10 digits)
+                throw new PlatformException(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
+            return value;
         }
-        if (Expiration < 10_000_000_000_000 && // in case of unix time in ms, checks number of digits to be valid (13)
-            Expiration >= 1_000_000_000_000) // more efficient than converting to string and checking length
-        {
-            Expiration /= 1_000; // convert from ms to s by dropping last 3 digits
-        } else if (Expiration < 1_000_000_000 || Expiration >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
-        {
-            throw new Exception(message: "Expiration is not a Unix timestamp (either in seconds or in milliseconds).");
-        }
-        if (VisibleFrom < 10_000_000_000_000 && // in case of unix time in ms, checks number of digits to be valid (13)
-            VisibleFrom >= 1_000_000_000_000) // more efficient than converting to string and checking length
-        {
-            VisibleFrom /= 1_000; // convert from ms to s by dropping last 3 digits
-        } else if (VisibleFrom >= 10_000_000_000) // in case neither ms or s unix time (not 13 or 10 digits)
-        {
-            throw new Exception(message: "VisibleFrom is not a Unix timestamp (either in seconds or in milliseconds).");
-        }
+        Timestamp = ConvertUnixMStoS(Timestamp);
+        Expiration = ConvertUnixMStoS(Expiration);
+        VisibleFrom = ConvertUnixMStoS(VisibleFrom);
     }
 }
 
