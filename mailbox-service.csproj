@@ -6,6 +6,8 @@
         <AssemblyVersion>1.0.*</AssemblyVersion>
         <Deterministic>false</Deterministic>
         <LangVersion>10</LangVersion>
+        <Configurations>Debug;Release</Configurations>
+        <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
     <ItemGroup>

@@ -12,7 +12,7 @@ using Rumble.Platform.MailboxService.Services;
 
 namespace Rumble.Platform.MailboxService.Controllers;
 
-[ApiController, Route(template: "mail/admin"), RequireAuth(AuthType.ADMIN_TOKEN), UseMongoTransaction]
+[ApiController, Route(template: "mail/admin"), RequireAuth(AuthType.ADMIN_TOKEN)]
 public class AdminController : PlatformController
 {
 #pragma warning disable
@@ -55,17 +55,17 @@ public class AdminController : PlatformController
     [HttpPost, Route(template: "messages/send/bulk")]
     public ObjectResult BulkSend()
     {
-        BulkMessage[] messages = Require<BulkMessage[]>(key: "messages");
+        Message[] messages = Require<Message[]>(key: "messages");
 
         try
         {
             if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
-                throw new PlatformException($"Missing key: '{BulkMessage.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
+                throw new PlatformException($"Missing key: '{Message.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
             _inboxService.BulkSend(messages);
         }
         catch (Exception e)
         {
-            throw new PlatformException("Bulk messages count not be sent.", inner: e);
+            throw new PlatformException("Bulk messages could not be sent.", inner: e);
         }
         
         return Ok(new {Messages = messages});
@@ -78,7 +78,7 @@ public class AdminController : PlatformController
         // following modification needed because something in update to platform-common made it not pull values correctly for attachments
         // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
 
-        GlobalMessage message = Require<GlobalMessage>(key: "globalMessage");
+        Message message = Require<Message>(key: "globalMessage");
         message.Validate();
         
         _globalMessageService.Create(message);
@@ -103,7 +103,7 @@ public class AdminController : PlatformController
         // This may have some side effects on how existing requests are structured.
         
         string messageId = Require<string>(key: "messageId");
-        GlobalMessage message = _globalMessageService.Get(messageId);
+        Message message = _globalMessageService.Get(messageId);
         
         if (message == null)
         {
@@ -111,7 +111,7 @@ public class AdminController : PlatformController
             return Problem(detail: $"Global message {messageId} not found.");
         }
 
-        GlobalMessage copy = message.Copy(); // circular reference otherwise
+        Message copy = message.Copy(); // circular reference otherwise
         message.UpdatePrevious(copy);
         // incorrect format for following inputs should default to previous entry
         string subject = Optional<string>(key: "subject") ?? message.Subject;
@@ -136,8 +136,10 @@ public class AdminController : PlatformController
         string internalNote = Optional<string>(key: "internalNote") ?? message.InternalNote;
         long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
 
-        message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
-            icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
+        
+        throw new NotImplementedException();
+        // message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
+        //     icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
 
         try
         {
@@ -159,7 +161,7 @@ public class AdminController : PlatformController
     public ObjectResult GlobalMessageExpire()
     {
         string messageId = Require<string>(key: "messageId");
-        GlobalMessage message = _globalMessageService.Get(messageId);
+        Message message = _globalMessageService.Get(messageId);
 
         if (message == null)
         {
@@ -167,7 +169,7 @@ public class AdminController : PlatformController
             return Problem(detail: $"Global message {messageId} was not found.");
         }
 
-        GlobalMessage copy = message.Copy(); // circular reference otherwise
+        Message copy = message.Copy(); // circular reference otherwise
         message.UpdatePrevious(copy);
     
         message.Expire();
@@ -189,7 +191,7 @@ public class AdminController : PlatformController
         }
         
         // updating global messages
-        GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
+        Message[] globals = _globalMessageService.GetActiveGlobalMessages()
             .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
             .Where(message => !message.IsExpired)
             .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)

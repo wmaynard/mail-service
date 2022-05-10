@@ -25,7 +25,7 @@ public class InboxController : PlatformController
         
         if (accountInbox == null) // means new account, need to call GetInbox() when account is created
         {
-            GlobalMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
+            Message[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
                 .Where(message => message.ForAccountsBefore > Inbox.UnixTime || message.ForAccountsBefore == null)
                 .Where(message => !message.IsExpired)
                 .Select(message => message)
@@ -39,7 +39,7 @@ public class InboxController : PlatformController
         }
 
         // updating global messages
-        GlobalMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
+        Message[] globals = _globalMessageService.GetActiveGlobalMessages()
             .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
             .Where(message => !message.IsExpired)
             .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)

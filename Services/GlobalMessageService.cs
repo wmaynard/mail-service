@@ -6,17 +6,17 @@ using Rumble.Platform.MailboxService.Models;
 
 namespace Rumble.Platform.MailboxService.Services;
 
-public class GlobalMessageService : PlatformMongoService<GlobalMessage>
+public class GlobalMessageService : PlatformMongoService<Message>
 {
     public GlobalMessageService() : base(collection: "globalMessages") {  }
 
-    public IEnumerable<GlobalMessage> GetActiveGlobalMessages()
+    public IEnumerable<Message> GetActiveGlobalMessages()
     {
-        long timestamp = GlobalMessage.UnixTime;
+        long timestamp = Message.UnixTime;
         return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList();
     }
 
-    public IEnumerable<GlobalMessage> GetAllGlobalMessages()
+    public IEnumerable<Message> GetAllGlobalMessages()
     {
         return _collection.Find(filter: globalMessage => true).ToList();
     }

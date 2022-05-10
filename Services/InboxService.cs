@@ -58,7 +58,7 @@ public class InboxService : PlatformMongoService<Inbox>
         return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
     }
 
-    public void UpdateAll(string id, GlobalMessage edited)
+    public void UpdateAll(string id, Message edited)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
@@ -86,10 +86,27 @@ public class InboxService : PlatformMongoService<Inbox>
         _collection.BulkWrite(listWrites);
     }
 
-    public void SendTo(string accountId, Message message) => _collection.FindOneAndUpdate(
-        filter: inbox => inbox.AccountId == accountId,
-        update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
-    );
+    public void SendTo(string accountId, Message message)
+    {
+        // Inbox inbox = _collection.FindOneAndUpdate<Inbox>(
+        //     filter: inbox => inbox.AccountId == accountId,
+        //     update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message),
+        //     options: new FindOneAndUpdateOptions<Inbox>()
+        //     {
+        //         ReturnDocument = ReturnDocument.After
+        //     }
+        // );
+        
+        Message msg = message as Message;
+
+        var result = _collection.UpdateOne<Inbox>(
+            filter: inbox => inbox.AccountId == accountId,
+            update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, msg)
+        );
+        
+
+        return;
+    }
 
     public void SendTo(List<string> accountIds, Message message)
     {
@@ -104,10 +121,13 @@ public class InboxService : PlatformMongoService<Inbox>
         _collection.BulkWrite(listWrites);
     }
     
-    public void BulkSend(IEnumerable<BulkMessage> messages)
+    public void BulkSend(IEnumerable<Message> messages)
     {
-        foreach (BulkMessage message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
-            SendTo(message.Recipient, message);
+        foreach (Message message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
+            _collection.UpdateOne<Inbox>(
+                filter: inbox => inbox.AccountId == message.Recipient,
+                update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
+            );
     }
 
     public void BulkSend(List<string> accountIds, List<Message> messages)

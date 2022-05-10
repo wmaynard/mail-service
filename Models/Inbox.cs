@@ -27,7 +27,7 @@ public class Inbox : PlatformCollectionDocument
     [BsonElement(DB_KEY_MESSAGES)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_MESSAGES)]
     public List<Message> Messages { get; private set; }
-    
+
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
     public long Timestamp { get; private set; }

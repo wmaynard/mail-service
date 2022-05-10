@@ -41,6 +41,20 @@ public class Message : PlatformCollectionDocument
     public const string FRIENDLY_KEY_INTERNAL_NOTE = "internalNote";
     public const string FRIENDLY_KEY_PREVIOUS_VERSIONS = "previousVersions";
 
+    internal const string DB_KEY_FOR_ACCOUNTS_BEFORE = "acctsbefore";
+
+    public const string FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE = "forAccountsBefore";
+    
+    [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE)]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
+    public long? ForAccountsBefore { get; private set; }
+    
+    public const string FRIENDLY_KEY_RECIPIENT = "accountId";
+	
+    [BsonIgnore]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_RECIPIENT)]
+    public string Recipient { get; set; }
+    
     [BsonElement(DB_KEY_SUBJECT)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT)]
     public string Subject { get; private set; }
@@ -105,7 +119,7 @@ public class Message : PlatformCollectionDocument
         Icon = "";
         Banner = "";
         PreviousVersions = new List<Message>();
-        Id = ObjectId.GenerateNewId().ToString(); // Will: probably not needed; mongo assigns one when inserting (but not upserting).
+        Id = ObjectId.GenerateNewId().ToString();
         Timestamp = UnixTime;
     }
     
