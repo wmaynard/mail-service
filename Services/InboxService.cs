@@ -12,46 +12,21 @@ namespace Rumble.Platform.MailboxService.Services;
 
 public class InboxService : PlatformMongoService<Inbox>
 {
-    private readonly Timer _inboxTimer;
-
     public void DeleteExpired() // removes old expired messages in inboxes
     {
         //just keeping the ones that are not expired and are visible
-        long expireTime = Inbox.UnixTime + long.Parse(PlatformEnvironment.Variable("INBOX_DELETE_OLD_SECONDS") ?? "604800") * 1000;
+        long deletionTime = Inbox.UnixTime + PlatformEnvironment.Optional<long?>("INBOX_DELETE_OLD_SECONDS") ?? 604800; // One week, in seconds
         
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
-        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > expireTime);
-        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, message => message.Expiration > expireTime);
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > deletionTime);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, message => message.Expiration > deletionTime);
 
         listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
 
         _collection.BulkWrite(listWrites);
     }
-
-    private void CheckExpiredInbox(object sender, ElapsedEventArgs args)
-    {
-        _inboxTimer.Start();
-        try
-        {
-            DeleteExpired();
-        }
-        catch (Exception e)
-        {
-            Log.Error(owner: Owner.Nathan, message:"Failure to check expired messages.", data: $"{e.Message}");
-        }
-        _inboxTimer.Start();
-    }
-    
-    public InboxService() : base(collection: "inboxes")
-    {
-        _inboxTimer = new Timer(interval: int.Parse(PlatformEnvironment.Variable("INBOX_CHECK_FREQUENCY_SECONDS") ?? "3600") * 1000) // check every hour
-        {
-            AutoReset = true
-        };
-        _inboxTimer.Elapsed += CheckExpiredInbox;
-        _inboxTimer.Start();
-    }
+    public InboxService() : base(collection: "inboxes") { }
     
     public override Inbox Get(string accountId)
     {
