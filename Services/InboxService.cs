@@ -22,10 +22,11 @@ public class InboxService : PlatformMongoService<Inbox>
             filter: Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration < deletionTime),
             update: Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, messages => messages.Expiration < deletionTime)
         );
-        Log.Info(Owner.Will, $"Deleted expired messages.", data: new
-        {
-            AffectedAccounts = result.ModifiedCount
-        });
+        if (result.ModifiedCount > 0)
+            Log.Info(Owner.Will, $"Deleted expired messages.", data: new
+            {
+                AffectedAccounts = result.ModifiedCount
+            });
     }
     public InboxService() : base(collection: "inboxes") { }
     
