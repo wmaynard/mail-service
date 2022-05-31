@@ -16,16 +16,16 @@ public class InboxService : PlatformMongoService<Inbox>
     public void DeleteExpired() // removes old expired messages in inboxes
     {
         //just keeping the ones that are not expired and are visible
-        long deletionTime = Inbox.UnixTime + PlatformEnvironment.Optional<long?>("INBOX_DELETE_OLD_SECONDS") ?? 604800; // One week, in seconds
         
-        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
-        
-        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > deletionTime);
-        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, message => message.Expiration > deletionTime);
-
-        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-
-        _collection.BulkWrite(listWrites);
+        long deletionTime = Timestamp.UnixTime + (PlatformEnvironment.Optional<long?>("INBOX_DELETE_OLD_SECONDS") ?? 604800); // One week, in seconds
+        UpdateResult result = _collection.UpdateMany(
+            filter: Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration < deletionTime),
+            update: Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, messages => messages.Expiration < deletionTime)
+        );
+        Log.Info(Owner.Will, $"Deleted expired messages.", data: new
+        {
+            AffectedAccounts = result.ModifiedCount
+        });
     }
     public InboxService() : base(collection: "inboxes") { }
     
