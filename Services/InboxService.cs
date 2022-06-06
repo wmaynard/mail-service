@@ -19,8 +19,8 @@ public class InboxService : PlatformMongoService<Inbox>
         
         long deletionTime = Timestamp.UnixTime + (PlatformEnvironment.Optional<long?>("INBOX_DELETE_OLD_SECONDS") ?? 604800); // One week, in seconds
         UpdateResult result = _collection.UpdateMany(
-            filter: Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration < deletionTime),
-            update: Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, messages => messages.Expiration < deletionTime)
+            filter: Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration > deletionTime),
+            update: Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, messages => messages.Expiration > deletionTime)
         );
         if (result.ModifiedCount > 0)
             Log.Info(Owner.Will, $"Deleted expired messages.", data: new
