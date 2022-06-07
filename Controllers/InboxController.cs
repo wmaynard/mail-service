@@ -65,6 +65,11 @@ public class InboxController : PlatformController
             .Select(message => message)
             .OrderBy(message => message.Expiration)
             .ToList();
+
+        foreach (Message message in unexpiredMessages)
+        {
+            message.Validate();
+        }
         accountInbox.UpdateMessages(unexpiredMessages);
 
         _inboxService.Update(accountInbox);
