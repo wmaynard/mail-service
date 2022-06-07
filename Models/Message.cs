@@ -169,6 +169,7 @@ public class Message : PlatformCollectionDocument
         Timestamp = ConvertUnixMStoS(Timestamp);
         Expiration = ConvertUnixMStoS(Expiration);
         VisibleFrom = ConvertUnixMStoS(VisibleFrom);
+        Id ??= ObjectId.GenerateNewId().ToString();
     }
 }
 

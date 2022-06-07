@@ -46,9 +46,9 @@ public class AdminController : PlatformController
         {
             _inboxService.SendTo(accountIds: accountIds, message: message);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds");
+            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds.", data: e.Message);
         }
         return Ok();
     }
