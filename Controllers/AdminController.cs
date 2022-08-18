@@ -27,18 +27,13 @@ public class AdminController : PlatformController
     {
         IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
-        return Ok(new { GlobalMessages = globalMessages }); // just an object for now
+        return Ok(new { GlobalMessages = globalMessages });
     }
 
     [HttpPost, Route(template: "messages/send")]
     public ObjectResult MessageSend()
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
-        
-        // TODO: Review below comment to see if it's still accurate
-        // following modification needed because something in update to platform-common made it not pull values correctly for attachments
-        // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-
         Message message = Require<Message>(key: "message");
         message.Validate();
 
@@ -62,6 +57,7 @@ public class AdminController : PlatformController
         {
             if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
                 throw new PlatformException($"Missing key: '{Message.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
+            
             _inboxService.BulkSend(messages);
         }
         catch (Exception e)
@@ -75,10 +71,6 @@ public class AdminController : PlatformController
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
-        
-        // following modification needed because something in update to platform-common made it not pull values correctly for attachments
-        // suspect it detects the keys nested inside the "attachment" key as separate keys, and defaults the quantity and type to 0 and null because it can't find a value
-
         Message message = Require<Message>(key: "globalMessage");
         message.Validate();
         
@@ -90,58 +82,26 @@ public class AdminController : PlatformController
     [HttpPatch, Route(template: "global/messages/edit")]
     public ObjectResult GlobalMessageEdit()
     {
-        // TODO: Refactor this endpoint
-        // It looks like this endpoint is parsing every field that can be updated.  I would simplify this to make it more readable.
-        // This can probably all be accomplished in just a couple of lines.  Ideally, it might look like:
-        //
-        // GlobalMessage updatedMessage = Require<GlobalMessage>(key: "message");
-        //
-        // if (string.isNullOrEmpty(updatedMessage.Id))
-        //     throw new PlatformException(message: "Message updates require an ID.");
-        //
-        // _globalMessageService.Update(updatedMessage);
-        //
-        // This may have some side effects on how existing requests are structured.
-        
-        string messageId = Require<string>(key: "messageId");
-        Message message = _globalMessageService.Get(messageId);
-        
-        if (message == null)
+
+        Message message = Require<Message>(key: "globalMessage");
+
+        if (string.IsNullOrEmpty(message.Id))
         {
-            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global messageId: {messageId}");
-            return Problem(detail: $"Global message {messageId} not found.");
+            throw new PlatformException(message: "Message update failed. An ID is required.");
         }
-
-        Message copy = message.Copy(); // circular reference otherwise
-        message.UpdatePrevious(copy);
-        // incorrect format for following inputs should default to previous entry
-        string subject = Optional<string>(key: "subject") ?? message.Subject;
-        string body = Optional<string>(key: "body") ?? message.Body;
-        // GenericData[] attachmentsData = Optional<GenericData[]>(key: "attachments");
-        Attachment[] attachments = Optional<Attachment[]>(key: "attachments");
-        // List<Attachment> attachments = message.Attachments;
-        // if (attachmentsData != null)
-        // {
-        //     attachments = new List<Attachment>();
-        //     foreach (GenericData ele in attachmentsData)
-        //     {
-        //         string attachmentString = ele.JSON;
-        //         attachments.Add(JsonConvert.DeserializeObject<Attachment>(attachmentString));
-        //     }
-        // }
-        long expiration = Optional<long?>(key: "expiration") ?? message.Expiration;
-        long visibleFrom = Optional<long?>(key: "visibleFrom") ?? message.VisibleFrom;
-        string icon = Optional<string>(key: "icon") ?? message.Icon;
-        string banner = Optional<string>(key: "banner") ?? message.Banner;
-        Message.StatusType status = Optional<Message.StatusType?>(key: "statusType") ?? message.Status;
-        string internalNote = Optional<string>(key: "internalNote") ?? message.InternalNote;
-        long? forAccountsBefore = Optional<long?>(key: "forAccountsBefore") ?? message.ForAccountsBefore;
-
         
-        throw new NotImplementedException();
-        // message.UpdateGlobal(subject: subject, body: body, attachments: attachments, expiration: expiration, visibleFrom: visibleFrom,
-        //     icon: icon, banner: banner, status: status, internalNote: internalNote, forAccountsBefore: forAccountsBefore);
+        message.Validate();
 
+        Message oldMessage = _globalMessageService.Get(message.Id);
+        
+        if (oldMessage == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global message ID: {message.Id}");
+            return Problem(detail: $"Global message {message.Id} not found.");
+        }
+        
+        message.UpdatePrevious(oldMessage);
+        
         try
         {
             message.Validate();
@@ -152,7 +112,7 @@ public class AdminController : PlatformController
             return Problem(detail: "Editing global message failed.");
         }
         
-        _inboxService.UpdateAll(id: messageId, edited: message);
+        _inboxService.UpdateAll(id: message.Id, edited: message);
         _globalMessageService.Update(message);
 
         return Ok(message.ResponseObject);

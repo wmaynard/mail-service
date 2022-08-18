@@ -50,9 +50,9 @@ public class Message : PlatformCollectionDocument
     public long? ForAccountsBefore { get; private set; }
     
     public const string FRIENDLY_KEY_RECIPIENT = "accountId";
-	
-    [BsonIgnore]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_RECIPIENT)]
+    
+    [BsonIgnore, BsonIgnoreIfNull]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_RECIPIENT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Recipient { get; set; }
     
     [BsonElement(DB_KEY_SUBJECT)]
@@ -122,22 +122,6 @@ public class Message : PlatformCollectionDocument
         Id = ObjectId.GenerateNewId().ToString();
         Timestamp = UnixTime;
     }
-    
-    // TODO: This can probably be removed once the update endpoint is refactored.
-    public void UpdateBase(string subject, string body, IEnumerable<Attachment> attachments, long expiration,
-        long visibleFrom, string icon, string banner, StatusType status, string internalNote)
-    {
-        Subject = subject;
-        Body = body;
-        Attachments = attachments.ToList();
-        Timestamp = UnixTime;
-        Expiration = expiration;
-        VisibleFrom = visibleFrom;
-        Icon = icon;
-        Banner = banner;
-        Status = status;
-        InternalNote = internalNote;
-    }
 
     public void Expire() => Expiration = UnixTime;
 
@@ -149,6 +133,7 @@ public class Message : PlatformCollectionDocument
 
     public void UpdatePrevious(Message message)
     {
+        // Need to keep this way to prevent nested previousVersions in old copies
         List<Message> oldPrevious = message.PreviousVersions;
         message.RemovePrevious();
         oldPrevious.Add(message);
