@@ -68,6 +68,51 @@ public class AdminController : PlatformController
         return Ok(new {Messages = messages});
     }
 
+    [HttpPatch, Route(template: "messages/edit")]
+    public ObjectResult MessageEdit()
+    {
+        Message message = Require<Message>(key: "message");
+        string accountId = Require<string>(key: "accountId");
+        
+        if (string.IsNullOrEmpty(message.Id))
+        {
+            throw new PlatformException(message: "Message update failed. A message id is required.");
+        }
+        
+        if (string.IsNullOrEmpty(accountId))
+        {
+            throw new PlatformException(message: "Message update failed. An accountId is required.");
+        }
+        
+        message.Validate();
+
+        Inbox inbox = _inboxService.Get(accountId);
+        
+        if (inbox == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit", data: $"accountId: {accountId}");
+            return Problem(detail: $"accountId: {accountId} not found.");
+        }
+
+        Message oldMessage = inbox.Messages.Find(msg => msg.Id == message.Id);
+        
+        message.UpdatePrevious(oldMessage);
+        
+        try
+        {
+            message.Validate();
+        }
+        catch (Exception e)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Editing message failed.", data: e.Message);
+            return Problem(detail: "Editing message failed.");
+        }
+
+        _inboxService.UpdateOne(id: message.Id, accountId: accountId, edited: message);
+
+        return Ok(inbox.ResponseObject);
+    }
+
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
@@ -87,7 +132,7 @@ public class AdminController : PlatformController
 
         if (string.IsNullOrEmpty(message.Id))
         {
-            throw new PlatformException(message: "Message update failed. An ID is required.");
+            throw new PlatformException(message: "Global message update failed. A message id is required.");
         }
         
         message.Validate();

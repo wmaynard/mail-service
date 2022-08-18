@@ -36,6 +36,22 @@ public class InboxService : PlatformMongoService<Inbox>
         return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
     }
 
+    public void UpdateOne(string id, string accountId, Message edited)
+    {
+        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
+        
+        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.Eq(inbox => inbox.AccountId, accountId);
+        filter &= Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
+        FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.Eq(inbox => inbox.AccountId, accountId);
+        filterHistory &= Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1], edited);
+
+        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
+        listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));
+        _collection.BulkWrite(listWrites);
+    }
+
     public void UpdateAll(string id, Message edited)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
