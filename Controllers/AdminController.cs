@@ -113,6 +113,58 @@ public class AdminController : PlatformController
 
         return Ok(inbox.ResponseObject);
     }
+    
+    [HttpPatch, Route(template: "messages/expire")]
+    public ObjectResult MessageExpire()
+    {
+        string messageId = Require<string>(key: "messageId");
+        string accountId = Require<string>(key: "accountId");
+        
+        if (string.IsNullOrEmpty(messageId))
+        {
+            throw new PlatformException(message: "Message update failed. A message id is required.");
+        }
+        
+        if (string.IsNullOrEmpty(accountId))
+        {
+            throw new PlatformException(message: "Message update failed. An accountId is required.");
+        }
+        
+        Inbox inbox = _inboxService.Get(accountId);
+        
+        if (inbox == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit", data: $"accountId: {accountId}");
+            return Problem(detail: $"accountId: {accountId} not found.");
+        }
+        
+        Message message = inbox.Messages.Find(msg => msg.Id == messageId);
+
+        if (message == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to expire", data: $"Global messageId: {messageId}");
+            return Problem(detail: $"Global message {messageId} was not found.");
+        }
+
+        Message copy = message.Copy(); // circular reference otherwise
+        message.UpdatePrevious(copy);
+    
+        message.Expire();
+
+        try
+        {
+            message.Validate();
+        }
+        catch (Exception e)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Expiring message failed.", data: e.Message);
+            return Problem(detail: "Expiring message failed.");
+        }
+
+        _inboxService.UpdateOne(id: message.Id, accountId: accountId, edited: message);
+        
+        return Ok(message.ResponseObject);
+    }
 
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
