@@ -238,7 +238,7 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
 
-    [HttpPost, Route(template: "inbox")]
+    [HttpGet, Route(template: "inbox")]
     public ObjectResult GetInboxAdmin()
     {
         string accountId = Require<string>(key: "accountId");
