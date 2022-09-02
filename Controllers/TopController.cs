@@ -1,6 +1,4 @@
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
-using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Services;
 

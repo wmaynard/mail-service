@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Utilities;
@@ -20,6 +19,7 @@ public class InboxController : PlatformController
     private readonly GlobalMessageService _globalMessageService;
 #pragma warning restore
 
+    #region Player's inbox
     [HttpGet, HealthMonitor(weight: 1)]
     public ObjectResult GetInbox() {
         Inbox accountInbox = _inboxService.Get(Token.AccountId);
@@ -152,16 +152,5 @@ public class InboxController : PlatformController
         }
         return Ok(new {claimed = claimed});
     }
+    #endregion
 }
-
-// All non-health endpoints should validate tokens for authorization.
-// InboxController
-// - GET /mail/inbox/health
-// - GET /mail/inbox
-//   - If the inbox is null, create one with any active eligible global messages in it.
-//   - If inbox is not null and there are new global messages, update the inbox appropriately.
-//   - Returns an Inbox with Messages sorted by expiration ascending
-//   - Omits expired messages
-// - PATCH /mail/inbox/claim
-//   - body should contain a messageId to claim.  If null, claim all messages instead.
-//   - Verify that each claimed message belongs to the accountId before anything is updated

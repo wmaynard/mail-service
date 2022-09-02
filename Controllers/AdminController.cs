@@ -7,6 +7,7 @@ using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -22,15 +23,8 @@ public class AdminController : PlatformController
     private readonly GlobalMessageService _globalMessageService;
 #pragma warning restore
 
-
-    [HttpGet, Route(template: "global/messages")]
-    public ActionResult GlobalMessageList()
-    {
-        IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
-
-        return Ok(new { GlobalMessages = globalMessages });
-    }
-
+    #region Direct Messages
+    // Sends a new message to account(s)
     [HttpPost, Route(template: "messages/send")]
     public ObjectResult MessageSend()
     {
@@ -49,6 +43,7 @@ public class AdminController : PlatformController
         return Ok();
     }
     
+    // Sends multiple messages to multiple accounts
     [HttpPost, Route(template: "messages/send/bulk")]
     public ObjectResult BulkSend()
     {
@@ -57,8 +52,10 @@ public class AdminController : PlatformController
         try
         {
             if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
+            {
                 throw new PlatformException($"Missing key: '{Message.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
-            
+            }
+
             _inboxService.BulkSend(messages);
         }
         catch (Exception e)
@@ -69,6 +66,7 @@ public class AdminController : PlatformController
         return Ok(new {Messages = messages});
     }
 
+    // Edits a message in a player's inbox
     [HttpPatch, Route(template: "messages/edit")]
     public ObjectResult MessageEdit()
     {
@@ -114,6 +112,7 @@ public class AdminController : PlatformController
         return Ok(inbox.ResponseObject);
     }
     
+    // Expires a message in a player's account
     [HttpPatch, Route(template: "messages/expire")]
     public ObjectResult MessageExpire()
     {
@@ -165,7 +164,19 @@ public class AdminController : PlatformController
         
         return Ok(message.ResponseObject);
     }
+    #endregion
+    
+    #region Global Messages
+    // Fetches all global messages
+    [HttpGet, Route(template: "global/messages")]
+    public ActionResult GlobalMessageList()
+    {
+        IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
+        return Ok(new { GlobalMessages = globalMessages });
+    }
+
+    // Sends a new global message
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
@@ -177,6 +188,7 @@ public class AdminController : PlatformController
         return Ok();
     }
 
+    // Edits an existing global message
     [HttpPatch, Route(template: "global/messages/edit")]
     public ObjectResult GlobalMessageEdit()
     {
@@ -216,6 +228,7 @@ public class AdminController : PlatformController
         return Ok(message.ResponseObject);
     }
 
+    // Expires an existing global message
     [HttpPatch, Route(template: "global/messages/expire")]
     public ObjectResult GlobalMessageExpire()
     {
@@ -237,7 +250,10 @@ public class AdminController : PlatformController
         _globalMessageService.Update(message);
         return Ok(message.ResponseObject);
     }
+    #endregion
 
+    #region Player Inbox
+    // Fetches a player's inbox without needing their token
     [HttpGet, Route(template: "inbox")]
     public ObjectResult GetInboxAdmin()
     {
@@ -284,7 +300,7 @@ public class AdminController : PlatformController
         _inboxService.Update(accountInbox);
 
         List<Message> filteredMessages = accountInbox.Messages
-            .Where(message => message.VisibleFrom < Inbox.UnixTime)
+            .Where(message => message.VisibleFrom < PlatformDataModel.UnixTime)
             .Select(message => message)
             .ToList();
         
@@ -292,21 +308,5 @@ public class AdminController : PlatformController
         
         return Ok(filteredInbox.ResponseObject);
     }
+    #endregion
 }
-
-// All non-health endpoints should validate tokens for authorization.
-// Any non-health admin endpoint should also check that tokens belong to admins.
-// AdminController
-// - GET /mail/admin/health
-// - GET /mail/admin/global/messages
-//   - returns all global messages, sorted by expiration ascending
-// - POST /mail/admin/messages/send
-//   - body should contain an array of accountIds
-// - POST /mail/admin/global/messages/send
-//   - body should contain a bool for eligibleForNewAccounts
-// - PATCH /mail/admin/global/messages/edit
-//   - body should contain a messageId and all parameters, incorrect parameter types are ignored
-// - PATCH /mail/admin/global/messages/expire
-//   - body should contain a messageId
-// - POST /mail/admin/inbox
-//   - body should contain an accountId
