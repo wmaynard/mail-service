@@ -3,7 +3,6 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Web;
 
 namespace Rumble.Platform.MailboxService.Models;
 
@@ -52,7 +51,11 @@ public class Inbox : PlatformCollectionDocument
             Id = id;
     }
     
-    public void UpdateMessages(List<Message> messages) => Messages = messages;  // This is good candidate for exposing the setter property to public - then this method can be removed.
+    public void UpdateMessages(List<Message> messages)
+    {
+        Messages = messages;
+        // This is good candidate for exposing the setter property to public - then this method can be removed.
+    }
 
     // workaround for if inbox was created without history
     public void CreateHistory()

@@ -1,7 +1,4 @@
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
 using System.Text.Json.Serialization;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
@@ -9,7 +6,7 @@ using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
-using Rumble.Platform.Common.Web;
+// ReSharper disable InconsistentNaming
 
 namespace Rumble.Platform.MailboxService.Models;
 
@@ -113,6 +110,7 @@ public class Message : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonIgnore]
+    // ReSharper disable once ArrangeAccessorOwnerBody
     public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
     public Message()
@@ -124,13 +122,22 @@ public class Message : PlatformCollectionDocument
         Timestamp = UnixTime;
     }
 
-    public void Expire() => Expiration = UnixTime;
+    public void Expire()
+    {
+        Expiration = UnixTime;
+    }
 
-    public void UpdateClaimed() => Status = (Status == StatusType.UNCLAIMED)
-        ? StatusType.CLAIMED
-        : throw new PlatformException(message:$"Message {Id} has already been claimed!");
-    
-    public void RemovePrevious() => PreviousVersions = null;
+    public void UpdateClaimed()
+    {
+        Status = (Status == StatusType.UNCLAIMED)
+                     ? StatusType.CLAIMED
+                     : throw new PlatformException(message: $"Message {Id} has already been claimed!");
+    }
+
+    public void RemovePrevious()
+    {
+        PreviousVersions = null;
+    }
 
     public void UpdatePrevious(Message message)
     {
@@ -141,10 +148,10 @@ public class Message : PlatformCollectionDocument
         PreviousVersions.AddRange(oldPrevious);
     }
 
-    public void Validate() // add future validations here
+    public new void Validate() // add future validations here
     {
         // DRY - don't repeat yourself
-        long ConvertUnixMStoS(long value)
+        static long ConvertUnixMStoS(long value)
         {
             if (value < 10_000_000_000_000 && value >= 1_000_000_000_000) // more efficient than converting to string and checking length
             {
@@ -165,15 +172,3 @@ public class Message : PlatformCollectionDocument
         Id ??= ObjectId.GenerateNewId().ToString();
     }
 }
-
-// Message
-// - Subject
-// - Body
-// - Collection of Attachments
-// - Timestamp (Unix timestamp, assigned on creation)
-// - Expiration (Unix timestamp)
-// - VisibleFrom (Unix timestamp)
-// - Icon (string value)
-// - Banner (string value)
-// - Status (CLAIMED or UNCLAIMED)
-// - IsExpired (getter property)
