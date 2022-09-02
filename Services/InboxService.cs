@@ -1,13 +1,9 @@
-using System;
 using System.Collections.Generic;
-using System.Timers;
 using MongoDB.Driver;
 using RCL.Logging;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
-using Rumble.Platform.Common.Web;
-using Timer = System.Timers.Timer;
 
 namespace Rumble.Platform.MailboxService.Services;
 
@@ -15,7 +11,7 @@ public class InboxService : PlatformMongoService<Inbox>
 {
     public void DeleteExpired() // removes old expired messages in inboxes
     {
-        //just keeping the ones that are not expired and are visible
+        // just keeping the ones that are not expired and are visible
 
         long deletionTime = Timestamp.UnixTime;
         long deletionBuffer = (PlatformEnvironment.Optional<long?>("INBOX_DELETE_OLD_SECONDS") ?? 604800); // One week, in seconds
@@ -24,10 +20,12 @@ public class InboxService : PlatformMongoService<Inbox>
             update: Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, messages => messages.Expiration < deletionTime - deletionBuffer)
         );
         if (result.ModifiedCount > 0)
+        {
             Log.Info(Owner.Will, $"Deleted expired messages.", data: new
-            {
-                AffectedAccounts = result.ModifiedCount
-            });
+                                                                     {
+                                                                         AffectedAccounts = result.ModifiedCount
+                                                                     });
+        }
     }
     public InboxService() : base(collection: "inboxes") { }
     
@@ -80,28 +78,6 @@ public class InboxService : PlatformMongoService<Inbox>
         _collection.BulkWrite(listWrites);
     }
 
-    public void SendTo(string accountId, Message message)
-    {
-        // Inbox inbox = _collection.FindOneAndUpdate<Inbox>(
-        //     filter: inbox => inbox.AccountId == accountId,
-        //     update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message),
-        //     options: new FindOneAndUpdateOptions<Inbox>()
-        //     {
-        //         ReturnDocument = ReturnDocument.After
-        //     }
-        // );
-        
-        Message msg = message as Message;
-
-        var result = _collection.UpdateOne<Inbox>(
-            filter: inbox => inbox.AccountId == accountId,
-            update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, msg)
-        );
-        
-
-        return;
-    }
-
     public void SendTo(List<string> accountIds, Message message)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
@@ -118,27 +94,11 @@ public class InboxService : PlatformMongoService<Inbox>
     public void BulkSend(IEnumerable<Message> messages)
     {
         foreach (Message message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
+        {
             _collection.UpdateOne<Inbox>(
-                filter: inbox => inbox.AccountId == message.Recipient,
-                update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
-            );
-    }
-
-    public void BulkSend(List<string> accountIds, List<Message> messages)
-    {
-        List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
-
-        FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
-        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.PushEach(inbox => inbox.Messages, messages);
-        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.PushEach(inbox => inbox.History, messages);
-
-        listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
-        listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
-        _collection.BulkWrite(listWrites);
+                                         filter: inbox => inbox.AccountId == message.Recipient,
+                                         update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
+                                        );
+        }
     }
 }
-
-// InboxService
-// - On a timer, delete messages older than (Expiration + X), where X is a configurable amount of time from an environment variable.
-
-
