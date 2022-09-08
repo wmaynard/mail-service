@@ -78,7 +78,7 @@ public class InboxService : PlatformMongoService<Inbox>
         _collection.BulkWrite(listWrites);
     }
 
-    public void SendTo(List<string> accountIds, Message message)
+    public void SendTo(IEnumerable<string> accountIds, Message message)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         

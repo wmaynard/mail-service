@@ -295,7 +295,7 @@ public class AdminController : PlatformController
         {
             message.Validate();
         }
-        accountInbox.UpdateMessages(unexpiredMessages);
+        accountInbox.Messages = unexpiredMessages;
 
         _inboxService.Update(accountInbox);
 

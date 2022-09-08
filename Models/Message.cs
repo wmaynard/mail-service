@@ -7,6 +7,9 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 // ReSharper disable InconsistentNaming
+// ReSharper disable ArrangeAccessorOwnerBody
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable ArrangeAttributes
 
 namespace Rumble.Platform.MailboxService.Models;
 
@@ -110,7 +113,6 @@ public class Message : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonIgnore]
-    // ReSharper disable once ArrangeAccessorOwnerBody
     public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
 
     public Message()
@@ -153,18 +155,18 @@ public class Message : PlatformCollectionDocument
         // DRY - don't repeat yourself
         static long ConvertUnixMStoS(long value)
         {
-            if (value < 10_000_000_000_000 && value >= 1_000_000_000_000) // more efficient than converting to string and checking length
+            switch (value)
             {
-                return value / 1_000; // convert from ms to s by dropping last 3 digits
+                // more efficient than converting to string and checking length
+                case < 10_000_000_000_000 and >= 1_000_000_000_000:
+                    return value / 1_000; // convert from ms to s by dropping last 3 digits
+                // in case neither ms or s unix time (not 13 or 10 digits)
+                case < 1_000_000_000 or >= 10_000_000_000:
+                    Log.Error(owner: Owner.Nathan, message: "Validation failed for message model timestamp.", data: value);
+                    throw new PlatformException(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
+                default:
+                    return value;
             }
-
-            if (value < 1_000_000_000 || value >= 10_000_000_000)         // in case neither ms or s unix time (not 13 or 10 digits)
-            {
-                Log.Error(owner: Owner.Nathan, message: "Validation failed for message model timestamp.", data: value);
-                throw new PlatformException(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
-            }
-
-            return value;
         }
         Timestamp = ConvertUnixMStoS(Timestamp);
         Expiration = ConvertUnixMStoS(Expiration);

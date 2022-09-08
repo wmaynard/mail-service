@@ -3,6 +3,8 @@ using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable ArrangeAttributes
 
 namespace Rumble.Platform.MailboxService.Models;
 
@@ -25,7 +27,7 @@ public class Inbox : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_MESSAGES)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_MESSAGES)]
-    public List<Message> Messages { get; private set; }
+    public List<Message> Messages { get; set; }
 
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
@@ -48,13 +50,9 @@ public class Inbox : PlatformCollectionDocument
             ?? new List<Message>(); // This might (?) be able to replace the CreateHistory() method.
         
         if (id != null)
+        {
             Id = id;
-    }
-    
-    public void UpdateMessages(List<Message> messages)
-    {
-        Messages = messages;
-        // This is good candidate for exposing the setter property to public - then this method can be removed.
+        }
     }
 
     // workaround for if inbox was created without history
@@ -64,9 +62,3 @@ public class Inbox : PlatformCollectionDocument
         History.AddRange(Messages);
     }
 }
-
-// Inbox
-// - Linked to players by their accountId (aid)
-// - Collection of Messages
-// - Timestamp of inbox creation
-// - History of all messages

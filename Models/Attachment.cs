@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Models;
+// ReSharper disable MemberCanBePrivate.Global
+// ReSharper disable ArrangeAttributes
 
 namespace Rumble.Platform.MailboxService.Models;
 
