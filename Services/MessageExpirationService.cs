@@ -11,6 +11,7 @@ public class MessageExpirationService : PlatformTimerService
     _inboxService = inboxService;
   }
 
+  // Removes expired messages when timer elapses
   protected override void OnElapsed()
   {
     _inboxService.DeleteExpired();

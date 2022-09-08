@@ -21,6 +21,7 @@ public class InboxController : PlatformController
 #pragma warning restore
 
     #region Player's inbox
+    // Fetches a player's inbox using their token
     [HttpGet, HealthMonitor(weight: 1)]
     public ObjectResult GetInbox() {
         Inbox accountInbox = _inboxService.Get(Token.AccountId);
@@ -85,6 +86,7 @@ public class InboxController : PlatformController
         return Ok(filteredInbox.ResponseObject);
     }
 
+    // Claims a message inside a player's inbox using their token
     [HttpPatch, Route(template: "claim")]
     public ObjectResult Claim()
     {
