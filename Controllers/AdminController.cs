@@ -39,6 +39,7 @@ public class AdminController : PlatformController
         catch (Exception e)
         {
             Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds.", data: e.Message);
+            throw new PlatformException("Message could not be sent to accountIds.", inner: e);
         }
         return Ok();
     }
@@ -90,7 +91,8 @@ public class AdminController : PlatformController
         if (inbox == null)
         {
             Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit", data: $"accountId: {accountId}");
-            return Problem(detail: $"accountId: {accountId} not found.");
+            throw
+                new PlatformException(message: $"Inbox for accountId: {accountId} not found while attempting to edit.");
         }
 
         Message oldMessage = inbox.Messages.Find(msg => msg.Id == message.Id);
@@ -104,7 +106,7 @@ public class AdminController : PlatformController
         catch (Exception e)
         {
             Log.Error(owner: Owner.Nathan, message: "Editing message failed.", data: e.Message);
-            return Problem(detail: "Editing message failed.");
+            throw new PlatformException(message: "Editing message failed.", inner: e);
         }
 
         _inboxService.UpdateOne(id: message.Id, accountId: accountId, edited: message);
@@ -134,7 +136,7 @@ public class AdminController : PlatformController
         if (inbox == null)
         {
             Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to expire.", data: $"accountId: {accountId}");
-            return Problem(detail: $"accountId: {accountId} not found.");
+            throw new PlatformException(message: $"Inbox for accountId: {accountId} not found while attempting to expire.");
         }
         
         Message message = inbox.Messages.Find(msg => msg.Id == messageId);
@@ -142,7 +144,7 @@ public class AdminController : PlatformController
         if (message == null)
         {
             Log.Error(owner: Owner.Nathan, message: "Message not found while attempting to expire.", data: $"MessageId: {messageId}");
-            return Problem(detail: $"Message {messageId} was not found.");
+            throw new PlatformException(message: $"Message {messageId} was not found.");
         }
 
         Message copy = message.Copy(); // circular reference otherwise
@@ -157,7 +159,7 @@ public class AdminController : PlatformController
         catch (Exception e)
         {
             Log.Error(owner: Owner.Nathan, message: "Expiring message failed.", data: e.Message);
-            return Problem(detail: "Expiring message failed.");
+            throw new PlatformException(message: "Expiring message failed.", inner: e);
         }
 
         _inboxService.UpdateOne(id: message.Id, accountId: accountId, edited: message);
@@ -207,7 +209,7 @@ public class AdminController : PlatformController
         if (oldMessage == null)
         {
             Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global message ID: {message.Id}");
-            return Problem(detail: $"Global message {message.Id} not found.");
+            throw new PlatformException(message: $"Global message {message.Id} not found.");
         }
         
         message.UpdatePrevious(oldMessage);
@@ -219,7 +221,7 @@ public class AdminController : PlatformController
         catch (Exception e)
         {
             Log.Error(owner: Owner.Nathan, message: "Editing global message failed.", data: e.Message);
-            return Problem(detail: "Editing global message failed.");
+            throw new PlatformException(message: "Editing global message failed.", inner: e);
         }
         
         _inboxService.UpdateAll(id: message.Id, edited: message);
@@ -238,7 +240,7 @@ public class AdminController : PlatformController
         if (message == null)
         {
             Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to expire", data: $"Global messageId: {messageId}");
-            return Problem(detail: $"Global message {messageId} was not found.");
+            throw new PlatformException(message: $"Global message {messageId} was not found.");
         }
 
         Message copy = message.Copy(); // circular reference otherwise
@@ -262,7 +264,7 @@ public class AdminController : PlatformController
 
         if (accountInbox == null)
         {
-            return Problem(detail: "Account with accountId does not exist.");
+            throw new PlatformException(message: $"Inbox with accountId {accountId} not found.");
         }
         
         // updating global messages

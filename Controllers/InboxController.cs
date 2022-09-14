@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -150,7 +151,7 @@ public class InboxController : PlatformController
             catch (Exception e)
             {
                 Log.Error(owner: Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
-                return Problem(e.Message);
+                throw new PlatformException(message: "Error occured while trying to claim a message.", inner: e);
             }
         }
         return Ok(new {claimed = claimed});

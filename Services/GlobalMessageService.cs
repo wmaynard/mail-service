@@ -13,8 +13,9 @@ public class GlobalMessageService : PlatformMongoService<Message>
     // Fetches all active global messages
     public IEnumerable<Message> GetActiveGlobalMessages()
     {
-        long timestamp = PlatformDataModel.UnixTime;
-        return _collection.Find(filter:globalMessage => globalMessage.VisibleFrom < timestamp && globalMessage.Expiration > timestamp).ToList();
+        return _collection.Find(filter:globalMessage => 
+                                           globalMessage.VisibleFrom < PlatformDataModel.UnixTime && 
+                                           globalMessage.Expiration > PlatformDataModel.UnixTime).ToList();
     }
 
     // Fetches all global messages

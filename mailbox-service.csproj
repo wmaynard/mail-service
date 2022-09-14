@@ -19,4 +19,20 @@
       <PackageReference Include="platform-csharp-common" Version="1.1.56" />
     </ItemGroup>
 
+    <ItemGroup>
+      <Compile Remove="chart\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <EmbeddedResource Remove="chart\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Remove="chart\**" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <Content Remove="chart\**" />
+    </ItemGroup>
+
 </Project>
