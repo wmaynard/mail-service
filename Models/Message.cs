@@ -169,11 +169,22 @@ public class Message : PlatformCollectionDocument
             }
         }
 
+        if (Subject == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Validation failed for message model subject. Value was null.");
+            throw new PlatformException(message: "Subject cannot be null.");
+        }
+
+        if (Body == null)
+        {
+            Body = "";
+        }
+        
         if (Attachments == null)
         {
-            Log.Error(owner: Owner.Nathan, message: "Validation failed for message model attachments.", data: Attachments);
-            throw new PlatformException(message: "Attachments cannot be null.");
+            Attachments = new List<Attachment>();
         }
+        
         Timestamp = ConvertUnixMStoS(Timestamp);
         Expiration = ConvertUnixMStoS(Expiration);
         VisibleFrom = ConvertUnixMStoS(VisibleFrom);
