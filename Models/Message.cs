@@ -168,6 +168,12 @@ public class Message : PlatformCollectionDocument
                     return value;
             }
         }
+
+        if (Attachments == null)
+        {
+            Log.Error(owner: Owner.Nathan, message: "Validation failed for message model attachments.", data: Attachments);
+            throw new PlatformException(message: "Attachments cannot be null.");
+        }
         Timestamp = ConvertUnixMStoS(Timestamp);
         Expiration = ConvertUnixMStoS(Expiration);
         VisibleFrom = ConvertUnixMStoS(VisibleFrom);
