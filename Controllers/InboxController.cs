@@ -118,7 +118,7 @@ public class InboxController : PlatformController
                     }
                     catch (Exception e)
                     {
-                        Log.Error(owner: Owner.Nathan, message: "Error occured while claiming all messages.", data: $"{e.Message}");
+                        Log.Error(owner: Owner.Nathan, message: $"Error occurred while claiming all messages. Error: {e.Message}", data: $"AccountId: {accountInbox.AccountId}");
                     }
                 }
 
@@ -150,8 +150,8 @@ public class InboxController : PlatformController
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: "Error occured while trying to claim a message", data: $"{e.Message}");
-                throw new PlatformException(message: "Error occured while trying to claim a message.", inner: e);
+                Log.Error(owner: Owner.Nathan, message: $"Error occurred while trying to claim a message. Error: {e.Message}", data: $"MessageId: {messageId}");
+                throw new PlatformException(message: $"Error occurred while trying to claim a message. Error: {e.Message}");
             }
         }
         return Ok(new {claimed = claimed});
