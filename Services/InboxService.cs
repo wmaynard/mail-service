@@ -10,13 +10,17 @@ namespace Rumble.Platform.MailboxService.Services;
 
 public class InboxService : PlatformMongoService<Inbox>
 {
+#pragma warning disable
+    private readonly DynamicConfig _dynamicConfig;
+#pragma warning restore
+    
     // Removes old expired messages in inboxes
     public void DeleteExpired()
     {
         // just keeping the ones that are not expired and are visible
 
         long deletionTime = Timestamp.UnixTime;
-        long deletionBuffer = (PlatformEnvironment.Optional<long?>("INBOX_DELETE_OLD_SECONDS") ?? 604800); // One week, in seconds
+        long deletionBuffer = (_dynamicConfig.Optional<long?>(key: "INBOX_DELETE_OLD_SECONDS") ?? 604800); // One week, in seconds
         UpdateResult result = _collection.UpdateMany(
             filter: Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Expiration < deletionTime - deletionBuffer),
             update: Builders<Inbox>.Update.PullFilter(inbox => inbox.Messages, messages => messages.Expiration < deletionTime - deletionBuffer)
@@ -75,9 +79,9 @@ public class InboxService : PlatformMongoService<Inbox>
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
         FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
-        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, PlatformDataModel.UnixTime);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1].Expiration, Timestamp.UnixTime);
         FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
-        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1].Expiration, PlatformDataModel.UnixTime);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1].Expiration, Timestamp.UnixTime);
 
         listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
         listWrites.Add(new UpdateManyModel<Inbox>(filterHistory, updateHistory));

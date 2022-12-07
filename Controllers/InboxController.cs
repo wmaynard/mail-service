@@ -5,7 +5,6 @@ using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -30,7 +29,7 @@ public class InboxController : PlatformController
         if (accountInbox == null) // means new account, need to call GetInbox() when account is created
         {
             Message[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
-                .Where(message => message.ForAccountsBefore > PlatformDataModel.UnixTime || message.ForAccountsBefore == null)
+                .Where(message => message.ForAccountsBefore > Timestamp.UnixTime || message.ForAccountsBefore == null)
                 .Where(message => !message.IsExpired)
                 .Select(message => message)
                 .OrderBy(message => message.Expiration)
@@ -78,7 +77,7 @@ public class InboxController : PlatformController
         _inboxService.Update(accountInbox);
 
         List<Message> filteredMessages = accountInbox.Messages
-            .Where(message => message.VisibleFrom < PlatformDataModel.UnixTime)
+            .Where(message => message.VisibleFrom < Timestamp.UnixTime)
             .Select(message => message)
             .ToList();
         

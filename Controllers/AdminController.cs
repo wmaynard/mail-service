@@ -7,7 +7,6 @@ using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.MailboxService.Models;
@@ -302,7 +301,7 @@ public class AdminController : PlatformController
         _inboxService.Update(accountInbox);
 
         List<Message> filteredMessages = accountInbox.Messages
-            .Where(message => message.VisibleFrom < PlatformDataModel.UnixTime)
+            .Where(message => message.VisibleFrom < Timestamp.UnixTime)
             .Select(message => message)
             .ToList();
         

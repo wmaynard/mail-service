@@ -4,8 +4,9 @@ using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
+using Rumble.Platform.Data;
+
 // ReSharper disable InconsistentNaming
 // ReSharper disable ArrangeAccessorOwnerBody
 // ReSharper disable MemberCanBePrivate.Global
@@ -70,7 +71,7 @@ public class Message : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_DATA), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_DATA), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public GenericData Data { get; set; }
+    public RumbleJson Data { get; set; }
     
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
@@ -113,7 +114,7 @@ public class Message : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonIgnore]
-    public bool IsExpired => Expiration <= UnixTime; // no setter, change expiration to UnixTime instead
+    public bool IsExpired => Expiration <= Common.Utilities.Timestamp.UnixTime; // no setter, change expiration to UnixTime instead
 
     public Message()
     {
@@ -121,12 +122,12 @@ public class Message : PlatformCollectionDocument
         Banner = "";
         PreviousVersions = new List<Message>();
         Id = ObjectId.GenerateNewId().ToString();
-        Timestamp = UnixTime;
+        Timestamp = Common.Utilities.Timestamp.UnixTime;
     }
 
     public void Expire()
     {
-        Expiration = UnixTime;
+        Expiration = Common.Utilities.Timestamp.UnixTime;
     }
 
     public void UpdateClaimed()

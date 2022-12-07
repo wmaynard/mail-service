@@ -2,7 +2,8 @@ using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Common.Extensions;
-using Rumble.Platform.Common.Models;
+using Rumble.Platform.Data;
+
 // ReSharper disable MemberCanBePrivate.Global
 // ReSharper disable ArrangeAttributes
 
@@ -44,7 +45,7 @@ public class Inbox : PlatformCollectionDocument
     {
         AccountId = aid;
         Messages = messages;
-        Timestamp = timestamp == 0 ? UnixTime : timestamp;
+        Timestamp = timestamp == 0 ? Common.Utilities.Timestamp.UnixTime : timestamp;
         History = history 
             ?? messages?.Copy() 
             ?? new List<Message>(); // This might (?) be able to replace the CreateHistory() method.
