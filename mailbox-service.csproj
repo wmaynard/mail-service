@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="platform-csharp-common" Version="1.2.38" />
+      <PackageReference Include="platform-csharp-common" Version="1.2.39" />
     </ItemGroup>
 
     <ItemGroup>
