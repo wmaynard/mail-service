@@ -112,12 +112,12 @@ public class InboxController : PlatformController
                         }
                         catch (Exception e)
                         {
-                            Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
+                            Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}. Message: {message}. {e.Message}");
                         }
                     }
                     catch (Exception e)
                     {
-                        Log.Error(owner: Owner.Nathan, message: $"Error occurred while claiming all messages.", data: $"Error: {e.Message}, AccountId: {accountInbox.AccountId}");
+                        Log.Error(owner: Owner.Nathan, message: $"Error occurred while claiming all messages.", data: $"Error: {e.Message}. AccountId: {accountInbox.AccountId}");
                     }
                 }
 
@@ -142,14 +142,14 @@ public class InboxController : PlatformController
                 }
                 catch (Exception e)
                 {
-                    Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}, message: {message}. {e.Message}");
+                    Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}. Message: {message}. {e.Message}");
                 }
                 claimed.Add(message);
                 _inboxService.Update(accountInbox);
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Error occurred while trying to claim a message.", data: $"Error: {e.Message}, MessageId: {messageId}");
+                Log.Error(owner: Owner.Nathan, message: $"Error occurred while trying to claim a message.", data: $"Error: {e.Message}. MessageId: {messageId}");
                 throw new PlatformException(message: $"Error occurred while trying to claim a message. Error: {e.Message}");
             }
         }
