@@ -150,7 +150,7 @@ public class InboxController : PlatformController
             catch (Exception e)
             {
                 Log.Error(owner: Owner.Nathan, message: $"Error occurred while trying to claim a message.", data: $"Error: {e.Message}. MessageId: {messageId}");
-                throw new PlatformException(message: $"Error occurred while trying to claim a message. Error: {e.Message}");
+                throw new PlatformException(message: $"Error occurred while trying to claim a message.", inner: e);
             }
         }
         return Ok(new {claimed = claimed});
