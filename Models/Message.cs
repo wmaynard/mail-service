@@ -1,8 +1,10 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
@@ -47,6 +49,7 @@ public class Message : PlatformCollectionDocument
 
     public const string FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE = "forAccountsBefore";
     
+    [AdditionalIndexKey(group: "INDEX_GROUP_MESSAGE", key: "_id", priority: 0)]
     [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
     public long? ForAccountsBefore { get; private set; }
@@ -77,10 +80,12 @@ public class Message : PlatformCollectionDocument
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
     public long Timestamp { get; private set; }
     
+    [CompoundIndex(group: "INDEX_GROUP_MESSAGE", priority: 2)]
     [BsonElement(DB_KEY_EXPIRATION)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_EXPIRATION)]
     public long Expiration { get; private set; }
     
+    [CompoundIndex(group: "INDEX_GROUP_MESSAGE", priority: 2)]
     [BsonElement(DB_KEY_VISIBLE_FROM)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VISIBLE_FROM)]
     public long VisibleFrom { get; private set; }

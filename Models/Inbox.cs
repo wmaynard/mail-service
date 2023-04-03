@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
+using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Data;
 
@@ -22,6 +23,8 @@ public class Inbox : PlatformCollectionDocument
     public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
     public const string FRIENDLY_KEY_HISTORY = "history";
     
+    [AdditionalIndexKey(group: "INDEX_GROUP_INBOX", key: "_id", priority: 0)]
+    [CompoundIndex(group: "INDEX_GROUP_INBOX", priority: 1)]
     [BsonElement(DB_KEY_ACCOUNT_ID)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID)]
     public string AccountId { get; private set; }
@@ -34,6 +37,7 @@ public class Inbox : PlatformCollectionDocument
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
     public long Timestamp { get; private set; }
     
+    [CompoundIndex(group: "INDEX_GROUP_INBOX", priority: 1)]
     [BsonElement(DB_KEY_HISTORY)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_HISTORY)]
     public List<Message> History { get; private set; }
