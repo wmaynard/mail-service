@@ -91,6 +91,7 @@ build_app:
       when: never
     - if: '$RESTART_SERVICE == "true"'
       when: never
+    - when: always
 
 
 sonarqube-check:
