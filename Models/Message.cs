@@ -138,8 +138,8 @@ public class Message : PlatformCollectionDocument
     public void UpdateClaimed()
     {
         Status = (Status == StatusType.UNCLAIMED)
-                     ? StatusType.CLAIMED
-                     : throw new PlatformException(message: $"Message has already been claimed!");
+             ? StatusType.CLAIMED
+             : throw new PlatformException(message: $"Message has already been claimed!");
     }
 
     public void RemovePrevious()

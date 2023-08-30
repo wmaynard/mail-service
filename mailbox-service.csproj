@@ -10,6 +10,7 @@
         <Platforms>AnyCPU</Platforms>
     </PropertyGroup>
 
+    <PropertyGroup Condition=" '$(RunConfiguration)' == 'mailbox_service' " />
     <ItemGroup>
       <Folder Include="Exceptions" />
       <Folder Include="Utilities" />

@@ -48,15 +48,24 @@ public class AdminController : PlatformController
     public ObjectResult BulkSend()
     {
         Message[] messages = Require<Message[]>(key: "messages");
+        
+        object logData = new
+        {
+            accountId = messages?.FirstOrDefault()?.Recipient,
+            Message = messages?.FirstOrDefault()
+        };
+
+        Log.Info(Owner.Will, "Received request to grant a reward.", data: logData); 
 
         try
         {
             if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
-            {
                 throw new PlatformException($"Missing key: '{Message.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
-            }
 
-            _inboxService.BulkSend(messages);
+            long affected = _inboxService.BulkSend(messages);
+            
+            if (affected == 0)
+                Log.Error(Owner.Will, "No message received!", data: logData);
         }
         catch (Exception e)
         {
@@ -74,14 +83,10 @@ public class AdminController : PlatformController
         string accountId = Require<string>(key: "accountId");
         
         if (string.IsNullOrEmpty(message.Id))
-        {
             throw new PlatformException(message: "Message update failed. A message id is required.");
-        }
         
         if (string.IsNullOrEmpty(accountId))
-        {
             throw new PlatformException(message: "Message update failed. An accountId is required.");
-        }
         
         message.Validate();
 
@@ -90,8 +95,7 @@ public class AdminController : PlatformController
         if (inbox == null)
         {
             Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit", data: $"accountId: {accountId}");
-            throw
-                new PlatformException(message: $"Inbox for accountId: {accountId} not found while attempting to edit.");
+            throw new PlatformException(message: $"Inbox for accountId: {accountId} not found while attempting to edit.");
         }
 
         Message oldMessage = inbox.Messages.Find(msg => msg.Id == message.Id);
@@ -121,14 +125,10 @@ public class AdminController : PlatformController
         string accountId = Require<string>(key: "accountId");
         
         if (string.IsNullOrEmpty(messageId))
-        {
             throw new PlatformException(message: "Message expire failed. A message id is required.");
-        }
         
         if (string.IsNullOrEmpty(accountId))
-        {
             throw new PlatformException(message: "Message expire failed. An accountId is required.");
-        }
         
         Inbox inbox = _inboxService.Get(accountId);
         

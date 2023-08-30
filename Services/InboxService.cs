@@ -103,14 +103,18 @@ public class InboxService : PlatformMongoService<Inbox>
     }
     
     // Sends multiple messages to the recipient
-    public void BulkSend(IEnumerable<Message> messages)
+    public long BulkSend(IEnumerable<Message> messages)
     {
+        long affected = 0;
         foreach (Message message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
         {
-            _collection.UpdateOne<Inbox>(
-                                         filter: inbox => inbox.AccountId == message.Recipient,
-                                         update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
-                                        );
+            _collection.UpdateOne(
+                filter: Builders<Inbox>.Filter.Eq(inbox => inbox.AccountId, message.Recipient),
+                update: Builders<Inbox>.Update.AddToSet(inbox => inbox.Messages, message)
+            );
+            affected++;
         }
+
+        return affected;
     }
 }
