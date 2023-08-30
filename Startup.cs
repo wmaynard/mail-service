@@ -8,6 +8,7 @@ public class Startup : PlatformStartup
 {
     protected override PlatformOptions ConfigureOptions(PlatformOptions options) => options
         .SetProjectOwner(Owner.Nathan)
+        .SetLogglyThrottleThreshold(10_000, 600)
         .SetTokenAudience(Audience.MailService)
         .SetRegistrationName("Mail")
         .SetPerformanceThresholds(warnMS: 500, errorMS: 2_000, criticalMS: 30_000)
