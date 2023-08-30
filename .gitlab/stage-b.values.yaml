@@ -37,7 +37,6 @@ hpa:
     enabled: true
     requestsPerSecond: "10"
     serverAddress: http://prometheus-server.gitlab-managed-apps.svc:80
-    filter: "exported_namespace"
 gitlab:
   app:
   env:
@@ -53,7 +52,7 @@ service:
   additionalHosts:
   commonName: stage-b.nonprod.tower.cdrentertainment.com
   externalPort: 5000
-  internalPort: 80
+  internalPort: 8080
 ingress:
   className: nginx
   enabled: true
@@ -64,6 +63,8 @@ ingress:
     secretName: "mailbox-service-stage-b"
     useDefaultSecret: false
   annotations:
+    nginx.ingress.kubernetes.io/client-body-buffer-size: 10m
+    nginx.ingress.kubernetes.io/service-upstream: "true"
   modSecurity:
     enabled: false
     secRuleEngine: "DetectionOnly"
