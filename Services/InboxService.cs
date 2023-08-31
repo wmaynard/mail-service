@@ -28,21 +28,18 @@ public class InboxService : PlatformMongoService<Inbox>
         if (result.ModifiedCount > 0)
         {
             Log.Info(Owner.Will, $"Deleted expired messages.", data: new
-                                                                     {
-                                                                         AffectedAccounts = result.ModifiedCount
-                                                                     });
+            { 
+                AffectedAccounts = result.ModifiedCount
+            });
         }
     }
     public InboxService() : base(collection: "inboxes") { }
     
     // Fetches an inbox using an accountId
-    public override Inbox Get(string accountId)
-    {
-        return _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
-    }
+    public override Inbox Get(string accountId) => _collection.Find(filter: inbox => inbox.AccountId == accountId).FirstOrDefault();
 
     // Updates one message in an account's inbox
-    public void UpdateOne(string id, string accountId, Message edited)
+    public void UpdateOne(string id, string accountId, MailboxMessage edited)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
@@ -59,7 +56,7 @@ public class InboxService : PlatformMongoService<Inbox>
     }
 
     // Updates all instances of a message in all inboxes
-    public void UpdateAll(string id, Message edited)
+    public void UpdateAll(string id, MailboxMessage edited)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
@@ -89,13 +86,13 @@ public class InboxService : PlatformMongoService<Inbox>
     }
 
     // Sends a message to multiple accounts
-    public void SendTo(IEnumerable<string> accountIds, Message message)
+    public void SendTo(IEnumerable<string> accountIds, MailboxMessage mailboxMessage)
     {
         List<WriteModel<Inbox>> listWrites = new List<WriteModel<Inbox>>();
         
         FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.In(inbox => inbox.AccountId, accountIds);
-        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, message);
-        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Push(inbox => inbox.History, message);
+        UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Push(inbox => inbox.Messages, mailboxMessage);
+        UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Push(inbox => inbox.History, mailboxMessage);
 
         listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
         listWrites.Add(new UpdateManyModel<Inbox>(filter, updateHistory));
@@ -103,10 +100,10 @@ public class InboxService : PlatformMongoService<Inbox>
     }
     
     // Sends multiple messages to the recipient
-    public long BulkSend(IEnumerable<Message> messages)
+    public long BulkSend(IEnumerable<MailboxMessage> messages)
     {
         long affected = 0;
-        foreach (Message message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
+        foreach (MailboxMessage message in messages)       // TODO: This needs to be optimized; this was done for rapid implementation
         {
             _collection.UpdateOne(
                 filter: Builders<Inbox>.Filter.Eq(inbox => inbox.AccountId, message.Recipient),

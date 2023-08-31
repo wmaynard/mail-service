@@ -28,13 +28,13 @@ public class InboxController : PlatformController
         
         if (accountInbox == null) // means new account, need to call GetInbox() when account is created
         {
-            Message[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
+            MailboxMessage[] globalMessages = _globalMessageService.GetActiveGlobalMessages()
                 .Where(message => message.ForAccountsBefore > Timestamp.UnixTime || message.ForAccountsBefore == null)
                 .Where(message => !message.IsExpired)
                 .Select(message => message)
                 .OrderBy(message => message.Expiration)
                 .ToArray();
-            accountInbox = new Inbox(aid: Token.AccountId, messages: new List<Message>(), history: new List<Message>());
+            accountInbox = new Inbox(aid: Token.AccountId, messages: new List<MailboxMessage>(), history: new List<MailboxMessage>());
             accountInbox.Messages.AddRange(globalMessages);
             accountInbox.History.AddRange(globalMessages);
             _inboxService.Create(accountInbox);
@@ -42,7 +42,7 @@ public class InboxController : PlatformController
         }
 
         // updating global messages
-        Message[] globals = _globalMessageService.GetActiveGlobalMessages()
+        MailboxMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
             .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
             .Where(message => !message.IsExpired)
             .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
@@ -52,31 +52,27 @@ public class InboxController : PlatformController
         {
             accountInbox.Messages.AddRange(globals);
             if (accountInbox.History == null)
-            {
                 accountInbox.CreateHistory();
-            }
             accountInbox.History.AddRange(globals);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
+            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", exception: e);
         }
         
-        List<Message> unexpiredMessages = accountInbox.Messages
+        List<MailboxMessage> unexpiredMessages = accountInbox.Messages
             .Where(message => !message.IsExpired)
             .Select(message => message)
             .OrderBy(message => message.Expiration)
             .ToList();
 
-        foreach (Message message in unexpiredMessages)
-        {
+        foreach (MailboxMessage message in unexpiredMessages)
             message.Validate();
-        }
         accountInbox.Messages = unexpiredMessages;
 
         _inboxService.Update(accountInbox);
 
-        List<Message> filteredMessages = accountInbox.Messages
+        List<MailboxMessage> filteredMessages = accountInbox.Messages
             .Where(message => message.VisibleFrom < Timestamp.UnixTime)
             .Select(message => message)
             .ToList();
@@ -92,12 +88,12 @@ public class InboxController : PlatformController
     {
         string messageId = Optional<string>(key: "messageId");
         Inbox accountInbox = _inboxService.Get(Token.AccountId);
-        List<Message> claimed = new List<Message>();
+        List<MailboxMessage> claimed = new List<MailboxMessage>();
         if (messageId == null)
         {
             // claim all
-            List<Message> messages = accountInbox.Messages;
-            foreach (Message message in messages)
+            List<MailboxMessage> messages = accountInbox.Messages;
+            foreach (MailboxMessage message in messages)
             {
                 if (message.Status == 0)
                 {
@@ -105,19 +101,19 @@ public class InboxController : PlatformController
                     {
                         message.UpdateClaimed();
                         claimed.Add(message);
-                        Message record = accountInbox.History.Find(history => history.Id == message.Id);
+                        MailboxMessage record = accountInbox.History.Find(history => history.Id == message.Id);
                         try
                         {
                             record?.UpdateClaimed();
                         }
                         catch (Exception e)
                         {
-                            Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}. Message: {message}. {e.Message}");
+                            Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", exception: e);
                         }
                     }
                     catch (Exception e)
                     {
-                        Log.Error(owner: Owner.Nathan, message: $"Error occurred while claiming all messages.", data: $"Error: {e.Message}. AccountId: {accountInbox.AccountId}");
+                        Log.Error(owner: Owner.Nathan, message: $"Error occurred while claiming all messages.", exception: e);
                     }
                 }
 
@@ -127,30 +123,29 @@ public class InboxController : PlatformController
         else
         {
             // claim one
-            Message message = accountInbox.Messages.Find(message => message.Id == messageId);
+            MailboxMessage mailboxMessage = accountInbox.Messages.Find(message => message.Id == messageId);
             try
             {
-                if (message == null)
+                if (mailboxMessage == null)
                 {
                     throw new Exception(message: $"Message {messageId} was not found while attempting to claim for accountId {Token.AccountId}.)");
                 }
-                message.UpdateClaimed();
-                Message record = accountInbox.History.Find(history => history.Id == message.Id);
+                mailboxMessage.UpdateClaimed();
+                MailboxMessage record = accountInbox.History.Find(history => history.Id == mailboxMessage.Id);
                 try
                 {
                     record?.UpdateClaimed();
                 }
                 catch (Exception e)
                 {
-                    Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", data: $"AccountId {accountInbox.AccountId}. Message: {message}. {e.Message}");
+                    Log.Error(owner: Owner.Nathan, message: "Error occurred while updating history for claimed message.", exception: e);
                 }
-                claimed.Add(message);
+                claimed.Add(mailboxMessage);
                 _inboxService.Update(accountInbox);
             }
             catch (Exception e)
             {
-                Log.Error(owner: Owner.Nathan, message: $"Error occurred while trying to claim a message.", data: $"Error: {e.Message}. MessageId: {messageId}");
-                throw new PlatformException(message: $"Error occurred while trying to claim a message.");
+                throw new PlatformException(message: $"Error occurred while trying to claim a message.", inner: e);
             }
         }
         return Ok(new {claimed = claimed});

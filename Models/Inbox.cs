@@ -32,7 +32,7 @@ public class Inbox : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_MESSAGES)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_MESSAGES)]
-    public List<Message> Messages { get; set; }
+    public List<MailboxMessage> Messages { get; set; }
 
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
@@ -41,19 +41,19 @@ public class Inbox : PlatformCollectionDocument
     [CompoundIndex(group: "INDEX_GROUP_INBOX", priority: 1)]
     [BsonElement(DB_KEY_HISTORY)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_HISTORY)]
-    public List<Message> History { get; private set; }
+    public List<MailboxMessage> History { get; private set; }
 
     [JsonConstructor]
     public Inbox() { }
 
-    public Inbox(string aid, List<Message> messages, List<Message> history, long timestamp = 0, string id = null)
+    public Inbox(string aid, List<MailboxMessage> messages, List<MailboxMessage> history, long timestamp = 0, string id = null)
     {
         AccountId = aid;
         Messages = messages;
         Timestamp = timestamp == 0 ? Common.Utilities.Timestamp.UnixTime : timestamp;
         History = history 
             ?? messages?.Copy() 
-            ?? new List<Message>(); // This might (?) be able to replace the CreateHistory() method.
+            ?? new List<MailboxMessage>(); // This might (?) be able to replace the CreateHistory() method.
         
         if (id != null)
         {
@@ -64,7 +64,7 @@ public class Inbox : PlatformCollectionDocument
     // workaround for if inbox was created without history
     public void CreateHistory()
     {
-        History = new List<Message>();
+        History = new List<MailboxMessage>();
         History.AddRange(Messages);
     }
 }

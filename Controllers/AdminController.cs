@@ -28,16 +28,16 @@ public class AdminController : PlatformController
     public ObjectResult MessageSend()
     {
         List<string> accountIds = Require<List<string>>(key: "accountIds");
-        Message message = Require<Message>(key: "message");
-        message.Validate();
+        MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
+        mailboxMessage.Validate();
 
         try
         {
-            _inboxService.SendTo(accountIds: accountIds, message: message);
+            _inboxService.SendTo(accountIds: accountIds, mailboxMessage: mailboxMessage);
         }
         catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds.", data: e.Message);
+            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds.", exception: e);
             throw new PlatformException("Message could not be sent to accountIds.", inner: e);
         }
         return Ok();
@@ -47,12 +47,12 @@ public class AdminController : PlatformController
     [HttpPost, Route(template: "messages/send/bulk")]
     public ObjectResult BulkSend()
     {
-        Message[] messages = Require<Message[]>(key: "messages");
+        MailboxMessage[] messages = Require<MailboxMessage[]>(key: "messages");
         
         object logData = new
         {
             accountId = messages?.FirstOrDefault()?.Recipient,
-            Message = messages?.FirstOrDefault()
+            MailboxMessage = messages?.FirstOrDefault()
         };
 
         Log.Info(Owner.Will, "Received request to grant a reward.", data: logData); 
@@ -60,7 +60,7 @@ public class AdminController : PlatformController
         try
         {
             if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
-                throw new PlatformException($"Missing key: '{Message.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
+                throw new PlatformException($"Missing key: '{MailboxMessage.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
 
             long affected = _inboxService.BulkSend(messages);
             
@@ -79,40 +79,39 @@ public class AdminController : PlatformController
     [HttpPatch, Route(template: "messages/edit")]
     public ObjectResult MessageEdit()
     {
-        Message message = Require<Message>(key: "message");
+        MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
         string accountId = Require<string>(key: "accountId");
         
-        if (string.IsNullOrEmpty(message.Id))
+        if (string.IsNullOrEmpty(mailboxMessage.Id))
             throw new PlatformException(message: "Message update failed. A message id is required.");
         
         if (string.IsNullOrEmpty(accountId))
             throw new PlatformException(message: "Message update failed. An accountId is required.");
         
-        message.Validate();
+        mailboxMessage.Validate();
 
         Inbox inbox = _inboxService.Get(accountId);
         
         if (inbox == null)
         {
-            Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit", data: $"accountId: {accountId}");
+            Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit");
             throw new PlatformException(message: $"Inbox for accountId: {accountId} not found while attempting to edit.");
         }
 
-        Message oldMessage = inbox.Messages.Find(msg => msg.Id == message.Id);
+        MailboxMessage oldMailboxMessage = inbox.Messages.Find(msg => msg.Id == mailboxMessage.Id);
         
-        message.UpdatePrevious(oldMessage);
+        mailboxMessage.UpdatePrevious(oldMailboxMessage);
         
         try
         {
-            message.Validate();
+            mailboxMessage.Validate();
         }
         catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Editing message failed.", data: e.Message);
             throw new PlatformException(message: "Editing message failed.", inner: e);
         }
 
-        _inboxService.UpdateOne(id: message.Id, accountId: accountId, edited: message);
+        _inboxService.UpdateOne(id: mailboxMessage.Id, accountId: accountId, edited: mailboxMessage);
 
         return Ok(inbox.ResponseObject);
     }
@@ -133,37 +132,30 @@ public class AdminController : PlatformController
         Inbox inbox = _inboxService.Get(accountId);
         
         if (inbox == null)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to expire.", data: $"accountId: {accountId}");
             throw new PlatformException(message: $"Inbox for accountId not found while attempting to expire.");
-        }
         
-        Message message = inbox.Messages.Find(msg => msg.Id == messageId);
+        MailboxMessage mailboxMessage = inbox.Messages.Find(msg => msg.Id == messageId);
 
-        if (message == null)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Message not found while attempting to expire.", data: $"MessageId: {messageId}");
-            throw new PlatformException(message: $"Message to expire was not found.");
-        }
+        if (mailboxMessage == null)
+            throw new PlatformException(message: "Message to expire was not found.");
 
-        Message copy = message.Copy(); // circular reference otherwise
-        message.UpdatePrevious(copy);
+        MailboxMessage copy = mailboxMessage.Copy(); // circular reference otherwise
+        mailboxMessage.UpdatePrevious(copy);
     
-        message.Expire();
+        mailboxMessage.Expire();
 
         try
         {
-            message.Validate();
+            mailboxMessage.Validate();
         }
         catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Expiring message failed.", data: e.Message);
             throw new PlatformException(message: "Expiring message failed.", inner: e);
         }
 
-        _inboxService.UpdateOne(id: message.Id, accountId: accountId, edited: message);
+        _inboxService.UpdateOne(id: mailboxMessage.Id, accountId: accountId, edited: mailboxMessage);
         
-        return Ok(message.ResponseObject);
+        return Ok(mailboxMessage.ResponseObject);
     }
     #endregion
     
@@ -172,7 +164,7 @@ public class AdminController : PlatformController
     [HttpGet, Route(template: "global/messages")]
     public ActionResult GlobalMessageList()
     {
-        IEnumerable<Message> globalMessages = _globalMessageService.GetAllGlobalMessages();
+        IEnumerable<MailboxMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
 
         return Ok(new { GlobalMessages = globalMessages });
     }
@@ -181,10 +173,10 @@ public class AdminController : PlatformController
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
-        Message message = Require<Message>(key: "globalMessage");
-        message.Validate();
+        MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "globalMessage");
+        mailboxMessage.Validate();
         
-        _globalMessageService.Create(message);
+        _globalMessageService.Create(mailboxMessage);
         
         return Ok();
     }
@@ -194,39 +186,35 @@ public class AdminController : PlatformController
     public ObjectResult GlobalMessageEdit()
     {
 
-        Message message = Require<Message>(key: "globalMessage");
+        MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "globalMessage");
 
-        if (string.IsNullOrEmpty(message.Id))
+        if (string.IsNullOrEmpty(mailboxMessage.Id))
         {
             throw new PlatformException(message: "Global message update failed. A message id is required.");
         }
         
-        message.Validate();
+        mailboxMessage.Validate();
 
-        Message oldMessage = _globalMessageService.Get(message.Id);
+        MailboxMessage oldMailboxMessage = _globalMessageService.Get(mailboxMessage.Id);
         
-        if (oldMessage == null)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to edit", data: $"Global message ID: {message.Id}");
+        if (oldMailboxMessage == null)
             throw new PlatformException(message: $"Global message to edit not found.");
-        }
         
-        message.UpdatePrevious(oldMessage);
+        mailboxMessage.UpdatePrevious(oldMailboxMessage);
         
         try
         {
-            message.Validate();
+            mailboxMessage.Validate();
         }
         catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Editing global message failed.", data: e.Message);
             throw new PlatformException(message: "Editing global message failed.", inner: e);
         }
         
-        _inboxService.UpdateAll(id: message.Id, edited: message);
-        _globalMessageService.Update(message);
+        _inboxService.UpdateAll(id: mailboxMessage.Id, edited: mailboxMessage);
+        _globalMessageService.Update(mailboxMessage);
 
-        return Ok(message.ResponseObject);
+        return Ok(mailboxMessage.ResponseObject);
     }
 
     // Expires an existing global message
@@ -234,22 +222,19 @@ public class AdminController : PlatformController
     public ObjectResult GlobalMessageExpire()
     {
         string messageId = Require<string>(key: "messageId");
-        Message message = _globalMessageService.Get(messageId);
+        MailboxMessage mailboxMessage = _globalMessageService.Get(messageId);
 
-        if (message == null)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Global message not found while attempting to expire", data: $"Global messageId: {messageId}");
+        if (mailboxMessage == null)
             throw new PlatformException(message: $"Global message to expire was not found.");
-        }
 
-        Message copy = message.Copy(); // circular reference otherwise
-        message.UpdatePrevious(copy);
+        MailboxMessage copy = mailboxMessage.Copy(); // circular reference otherwise
+        mailboxMessage.UpdatePrevious(copy);
     
-        message.Expire();
+        mailboxMessage.Expire();
     
         _inboxService.UpdateExpiration(id: messageId);
-        _globalMessageService.Update(message);
-        return Ok(message.ResponseObject);
+        _globalMessageService.Update(mailboxMessage);
+        return Ok(mailboxMessage.ResponseObject);
     }
     #endregion
 
@@ -267,7 +252,7 @@ public class AdminController : PlatformController
         }
         
         // updating global messages
-        Message[] globals = _globalMessageService.GetActiveGlobalMessages()
+        MailboxMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
             .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
             .Where(message => !message.IsExpired)
             .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
@@ -282,17 +267,17 @@ public class AdminController : PlatformController
             }
             accountInbox.History.AddRange(globals);
         }
-        catch (Exception)
+        catch (Exception e)
         {
-            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", data: $"AccountId: {Token.AccountId}");
+            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", exception: e);
         }
         
-        List<Message> unexpiredMessages = accountInbox.Messages
+        List<MailboxMessage> unexpiredMessages = accountInbox.Messages
             .Where(message => !message.IsExpired)
             .Select(message => message)
             .OrderBy(message => message.Expiration)
             .ToList();
-        foreach (Message message in unexpiredMessages)
+        foreach (MailboxMessage message in unexpiredMessages)
         {
             message.Validate();
         }
@@ -300,7 +285,7 @@ public class AdminController : PlatformController
 
         _inboxService.Update(accountInbox);
 
-        List<Message> filteredMessages = accountInbox.Messages
+        List<MailboxMessage> filteredMessages = accountInbox.Messages
             .Where(message => message.VisibleFrom < Timestamp.UnixTime)
             .Select(message => message)
             .ToList();

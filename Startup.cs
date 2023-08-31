@@ -12,5 +12,6 @@ public class Startup : PlatformStartup
         .SetTokenAudience(Audience.MailService)
         .SetRegistrationName("Mail")
         .SetPerformanceThresholds(warnMS: 500, errorMS: 2_000, criticalMS: 30_000)
+        .DisableFeatures(CommonFeature.ConsoleObjectPrinting)
         .DisableServices(CommonService.Config);
 }

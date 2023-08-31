@@ -17,7 +17,7 @@ using Rumble.Platform.Data;
 namespace Rumble.Platform.MailboxService.Models;
 
 [BsonIgnoreExtraElements]
-public class Message : PlatformCollectionDocument
+public class MailboxMessage : PlatformCollectionDocument
 {
     internal const string DB_KEY_SUBJECT = "sbjct";
     internal const string DB_KEY_BODY = "body";
@@ -115,17 +115,17 @@ public class Message : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_PREVIOUS_VERSIONS), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PREVIOUS_VERSIONS)]
-    public List<Message> PreviousVersions { get; private set; }
+    public List<MailboxMessage> PreviousVersions { get; private set; }
 
     [BsonIgnore]
     [JsonIgnore]
     public bool IsExpired => Expiration <= Common.Utilities.Timestamp.UnixTime; // no setter, change expiration to UnixTime instead
 
-    public Message()
+    public MailboxMessage()
     {
         Icon = "";
         Banner = "";
-        PreviousVersions = new List<Message>();
+        PreviousVersions = new List<MailboxMessage>();
         Id = ObjectId.GenerateNewId().ToString();
         Timestamp = Common.Utilities.Timestamp.UnixTime;
     }
@@ -147,12 +147,12 @@ public class Message : PlatformCollectionDocument
         PreviousVersions = null;
     }
 
-    public void UpdatePrevious(Message message)
+    public void UpdatePrevious(MailboxMessage mailboxMessage)
     {
         // Need to keep this way to prevent nested previousVersions in old copies
-        List<Message> oldPrevious = message.PreviousVersions;
-        message.RemovePrevious();
-        oldPrevious.Add(message);
+        List<MailboxMessage> oldPrevious = mailboxMessage.PreviousVersions;
+        mailboxMessage.RemovePrevious();
+        oldPrevious.Add(mailboxMessage);
         PreviousVersions.AddRange(oldPrevious);
     }
 
@@ -168,7 +168,6 @@ public class Message : PlatformCollectionDocument
                     return value / 1_000; // convert from ms to s by dropping last 3 digits
                 // in case neither ms or s unix time (not 13 or 10 digits)
                 case < 1_000_000_000 or >= 10_000_000_000:
-                    Log.Error(owner: Owner.Nathan, message: "Validation failed for message model timestamp.", data: value);
                     throw new PlatformException(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
                 default:
                     return value;
@@ -176,21 +175,10 @@ public class Message : PlatformCollectionDocument
         }
 
         if (Subject == null)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Validation failed for message model subject. Value was null.");
             throw new PlatformException(message: "Subject cannot be null.");
-        }
 
-        if (Body == null)
-        {
-            Body = "";
-        }
-        
-        if (Attachments == null)
-        {
-            Attachments = new List<Attachment>();
-        }
-        
+        Body ??= "";
+        Attachments ??= new List<Attachment>();
         Timestamp = ConvertUnixMStoS(Timestamp);
         Expiration = ConvertUnixMStoS(Expiration);
         VisibleFrom = ConvertUnixMStoS(VisibleFrom);
