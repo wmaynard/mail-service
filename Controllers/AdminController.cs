@@ -9,6 +9,7 @@ using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
+using Rumble.Platform.Data;
 using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.MailboxService.Services;
 
@@ -20,6 +21,7 @@ public class AdminController : PlatformController
 #pragma warning disable
     private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
+    private readonly MessageService _messageService;
 #pragma warning restore
 
     #region Direct Messages
@@ -27,19 +29,11 @@ public class AdminController : PlatformController
     [HttpPost, Route(template: "messages/send")]
     public ObjectResult MessageSend()
     {
-        List<string> accountIds = Require<List<string>>(key: "accountIds");
+        string[] accountIds = Require<string[]>(key: "accountIds");
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
-        mailboxMessage.Validate();
 
-        try
-        {
-            _inboxService.SendTo(accountIds: accountIds, mailboxMessage: mailboxMessage);
-        }
-        catch (Exception e)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Message could not be sent to accountIds.", exception: e);
-            throw new PlatformException("Message could not be sent to accountIds.", inner: e);
-        }
+        _messageService.Grant(mailboxMessage, accountIds);
+        
         return Ok();
     }
     
@@ -49,30 +43,15 @@ public class AdminController : PlatformController
     {
         MailboxMessage[] messages = Require<MailboxMessage[]>(key: "messages");
         
-        object logData = new
+        Log.Info(Owner.Will, "Received request to grant a reward.", data: new
         {
             accountId = messages?.FirstOrDefault()?.Recipient,
-            MailboxMessage = messages?.FirstOrDefault()
-        };
+            MailboxMessage = messages?.FirstOrDefault(),
+            count = messages?.Length ?? 0
+        }); 
+        _messageService.Insert(messages);
 
-        Log.Info(Owner.Will, "Received request to grant a reward.", data: logData); 
-
-        try
-        {
-            if (messages.Any(message => string.IsNullOrEmpty(message.Recipient)))
-                throw new PlatformException($"Missing key: '{MailboxMessage.FRIENDLY_KEY_RECIPIENT}'.", code: ErrorCode.RequiredFieldMissing);
-
-            long affected = _inboxService.BulkSend(messages);
-            
-            if (affected == 0)
-                Log.Error(Owner.Will, "No message received!", data: logData);
-        }
-        catch (Exception e)
-        {
-            throw new PlatformException("Bulk messages could not be sent.", inner: e);
-        }
-        
-        return Ok(new {Messages = messages});
+        return Ok(messages);
     }
 
     // Edits a message in a player's inbox
@@ -80,106 +59,60 @@ public class AdminController : PlatformController
     public ObjectResult MessageEdit()
     {
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
-        string accountId = Require<string>(key: "accountId");
         
-        if (string.IsNullOrEmpty(mailboxMessage.Id))
-            throw new PlatformException(message: "Message update failed. A message id is required.");
-        
-        if (string.IsNullOrEmpty(accountId))
-            throw new PlatformException(message: "Message update failed. An accountId is required.");
-        
-        mailboxMessage.Validate();
+        _messageService.Replace(mailboxMessage);
 
-        Inbox inbox = _inboxService.Get(accountId);
-        
-        if (inbox == null)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Inbox not found while attempting to edit");
-            throw new PlatformException(message: $"Inbox for accountId: {accountId} not found while attempting to edit.");
-        }
-
-        MailboxMessage oldMailboxMessage = inbox.Messages.Find(msg => msg.Id == mailboxMessage.Id);
-        
-        mailboxMessage.UpdatePrevious(oldMailboxMessage);
-        
-        try
-        {
-            mailboxMessage.Validate();
-        }
-        catch (Exception e)
-        {
-            throw new PlatformException(message: "Editing message failed.", inner: e);
-        }
-
-        _inboxService.UpdateOne(id: mailboxMessage.Id, accountId: accountId, edited: mailboxMessage);
-
-        return Ok(inbox.ResponseObject);
+        return Ok(_inboxService.Get(mailboxMessage.Recipient));
     }
     
     // Expires a message in a player's account
     [HttpPatch, Route(template: "messages/expire")]
-    public ObjectResult MessageExpire()
-    {
-        string messageId = Require<string>(key: "messageId");
-        string accountId = Require<string>(key: "accountId");
-        
-        if (string.IsNullOrEmpty(messageId))
-            throw new PlatformException(message: "Message expire failed. A message id is required.");
-        
-        if (string.IsNullOrEmpty(accountId))
-            throw new PlatformException(message: "Message expire failed. An accountId is required.");
-        
-        Inbox inbox = _inboxService.Get(accountId);
-        
-        if (inbox == null)
-            throw new PlatformException(message: $"Inbox for accountId not found while attempting to expire.");
-        
-        MailboxMessage mailboxMessage = inbox.Messages.Find(msg => msg.Id == messageId);
-
-        if (mailboxMessage == null)
-            throw new PlatformException(message: "Message to expire was not found.");
-
-        MailboxMessage copy = mailboxMessage.Copy(); // circular reference otherwise
-        mailboxMessage.UpdatePrevious(copy);
+    public ObjectResult MessageExpire() => Ok(_messageService.Expire(Require<string>("messageId")));
     
-        mailboxMessage.Expire();
-
-        try
-        {
-            mailboxMessage.Validate();
-        }
-        catch (Exception e)
-        {
-            throw new PlatformException(message: "Expiring message failed.", inner: e);
-        }
-
-        _inboxService.UpdateOne(id: mailboxMessage.Id, accountId: accountId, edited: mailboxMessage);
-        
-        return Ok(mailboxMessage.ResponseObject);
-    }
     #endregion
     
     #region Global Messages
     // Fetches all global messages
     [HttpGet, Route(template: "global/messages")]
-    public ActionResult GlobalMessageList()
+    public ActionResult GlobalMessageList() => Ok(new RumbleJson
     {
-        IEnumerable<MailboxMessage> globalMessages = _globalMessageService.GetAllGlobalMessages();
-
-        return Ok(new { GlobalMessages = globalMessages });
-    }
+        {"globalMessages", _globalMessageService.GetAllGlobalMessages()}
+    });
 
     // Sends a new global message
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
-        MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "globalMessage");
-        mailboxMessage.Validate();
-        
-        _globalMessageService.Create(mailboxMessage);
+        _globalMessageService.Create(Require<MailboxMessage>(key: "globalMessage"));
         
         return Ok();
     }
+    
+    /////////////////////////////////
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    ///
+    /// 
 
     // Edits an existing global message
     [HttpPatch, Route(template: "global/messages/edit")]

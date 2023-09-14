@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MongoDB.Driver;
 using RCL.Logging;
+using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
@@ -45,9 +46,12 @@ public class InboxService : PlatformMongoService<Inbox>
         
         FilterDefinition<Inbox> filter = Builders<Inbox>.Filter.Eq(inbox => inbox.AccountId, accountId);
         filter &= Builders<Inbox>.Filter.ElemMatch(inbox => inbox.Messages, message => message.Id == id);
+        
         UpdateDefinition<Inbox> update = Builders<Inbox>.Update.Set(inbox => inbox.Messages[-1], edited);
+        
         FilterDefinition<Inbox> filterHistory = Builders<Inbox>.Filter.Eq(inbox => inbox.AccountId, accountId);
         filterHistory &= Builders<Inbox>.Filter.ElemMatch(inbox => inbox.History, message => message.Id == id);
+        
         UpdateDefinition<Inbox> updateHistory = Builders<Inbox>.Update.Set(inbox => inbox.History[-1], edited);
 
         listWrites.Add(new UpdateManyModel<Inbox>(filter, update));
@@ -115,3 +119,34 @@ public class InboxService : PlatformMongoService<Inbox>
         return affected;
     }
 }
+
+public class MinqInboxService : MinqService<Inbox>
+{
+    private long DELETION_BUFFER => _dynamicConfig.Optional<long?>(key: "INBOX_DELETE_OLD_SECONDS") ?? 604800; // One week, in seconds
+    
+#pragma warning disable
+    private readonly DynamicConfig _dynamicConfig;
+#pragma warning restore
+    
+    public MinqInboxService() : base("inboxes") { }
+
+    public Inbox Get(string accountId) => mongo
+        .Where(query => query.EqualTo(inbox => inbox.AccountId, accountId))
+        .FirstOrDefault();
+
+    public void DeleteExpired() => mongo
+        .RemoveElements(
+            model => model.Messages, 
+            query => query.LessThanOrEqualTo(message => message.Expiration, Timestamp.UnixTime - DELETION_BUFFER)
+        );
+
+    public void UpdateOne(string messageId, string accountId, MailboxMessage edited)
+    {
+        mongo
+            .Where(query => query.EqualTo(inbox => inbox.AccountId, accountId))
+            .Update(query => query.UpdateItem())
+    }
+}
+
+
+

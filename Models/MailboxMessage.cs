@@ -78,7 +78,7 @@ public class MailboxMessage : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
-    public long Timestamp { get; private set; }
+    public long CreatedOn { get; private set; }
     
     [CompoundIndex(group: "INDEX_GROUP_MESSAGE", priority: 2)]
     [BsonElement(DB_KEY_EXPIRATION)]
@@ -119,7 +119,7 @@ public class MailboxMessage : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonIgnore]
-    public bool IsExpired => Expiration <= Common.Utilities.Timestamp.UnixTime; // no setter, change expiration to UnixTime instead
+    public bool IsExpired => Expiration <= Timestamp.UnixTime; // no setter, change expiration to UnixTime instead
 
     public MailboxMessage()
     {
@@ -127,13 +127,10 @@ public class MailboxMessage : PlatformCollectionDocument
         Banner = "";
         PreviousVersions = new List<MailboxMessage>();
         Id = ObjectId.GenerateNewId().ToString();
-        Timestamp = Common.Utilities.Timestamp.UnixTime;
+        CreatedOn = Timestamp.UnixTime;
     }
 
-    public void Expire()
-    {
-        Expiration = Common.Utilities.Timestamp.UnixTime;
-    }
+    public void Expire() => Expiration = Timestamp.UnixTime;
 
     public void UpdateClaimed()
     {
@@ -142,10 +139,7 @@ public class MailboxMessage : PlatformCollectionDocument
              : throw new PlatformException(message: $"Message has already been claimed!");
     }
 
-    public void RemovePrevious()
-    {
-        PreviousVersions = null;
-    }
+    public void RemovePrevious() => PreviousVersions = null;
 
     public void UpdatePrevious(MailboxMessage mailboxMessage)
     {
@@ -179,7 +173,7 @@ public class MailboxMessage : PlatformCollectionDocument
 
         Body ??= "";
         Attachments ??= new List<Attachment>();
-        Timestamp = ConvertUnixMStoS(Timestamp);
+        CreatedOn = ConvertUnixMStoS(CreatedOn);
         Expiration = ConvertUnixMStoS(Expiration);
         VisibleFrom = ConvertUnixMStoS(VisibleFrom);
         Id ??= ObjectId.GenerateNewId().ToString();
