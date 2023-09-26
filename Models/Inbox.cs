@@ -37,7 +37,7 @@ public class Inbox : PlatformCollectionDocument
 
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
-    public long CreatedOn { get; private set; }
+    public new long CreatedOn { get; private set; }
     
     [JsonIgnore]
     [BsonElement("accessedOn")]

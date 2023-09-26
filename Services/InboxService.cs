@@ -1,9 +1,4 @@
-using System.Collections.Generic;
-using MongoDB.Driver;
-using RCL.Logging;
 using Rumble.Platform.Common.Minq;
-using Rumble.Platform.Common.Models;
-using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
 
@@ -22,6 +17,3 @@ public class InboxService : MinqService<Inbox>
             .SetOnInsert(inbox => inbox.CreatedOn, Timestamp.UnixTime)
         );
 }
-
-
-

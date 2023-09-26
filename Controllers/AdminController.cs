@@ -4,9 +4,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Mvc;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
-using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
-using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
@@ -20,8 +18,7 @@ namespace Rumble.Platform.MailboxService.Controllers;
 public class AdminController : PlatformController
 {
 #pragma warning disable
-    // private readonly InboxService _inboxService;
-    private readonly InboxService _minqbox;
+    private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
     private readonly MessageService _messageService;
 #pragma warning restore
@@ -64,7 +61,7 @@ public class AdminController : PlatformController
         
         _messageService.Update(mailboxMessage);
         
-        return Ok(_minqbox.FromId(mailboxMessage.Recipient));
+        return Ok(_inboxService.FromId(mailboxMessage.Recipient));
     }
     
     // Expires a message in a player's account
@@ -112,5 +109,5 @@ public class AdminController : PlatformController
 #endregion
 
     [HttpGet, Route(template: "inbox")]
-    public ObjectResult GetPlayerInbox() => Ok(_minqbox.FromId(Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID)));
+    public ObjectResult GetPlayerInbox() => Ok(_inboxService.FromId(Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID)));
 }

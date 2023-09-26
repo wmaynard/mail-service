@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using Amazon.Auth.AccessControlPolicy;
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
@@ -50,8 +51,8 @@ public class MailboxMessage : PlatformCollectionDocument
     public const string FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE = "forAccountsBefore";
     
     [AdditionalIndexKey(group: "INDEX_GROUP_MESSAGE", key: "_id", priority: 0)]
-    [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE)]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE)]
+    [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE), BsonIgnoreIfDefault]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public long? ForAccountsBefore { get; private set; }
     
     public const string FRIENDLY_KEY_RECIPIENT = "accountId";
@@ -61,7 +62,7 @@ public class MailboxMessage : PlatformCollectionDocument
     public string Recipient { get; set; }
     
     [BsonElement("gid"), BsonIgnoreIfNull]
-    [JsonInclude, JsonPropertyName("globalMessageId")]
+    [JsonInclude, JsonPropertyName("globalMessageId"), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string GlobalMessageId { get; set; }
     
     [BsonElement(DB_KEY_SUBJECT)]
@@ -82,7 +83,7 @@ public class MailboxMessage : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_TIMESTAMP)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
-    public long CreatedOn { get; private set; }
+    public new long CreatedOn { get; private set; }
     
     [CompoundIndex(group: "INDEX_GROUP_MESSAGE", priority: 2)]
     [BsonElement(DB_KEY_EXPIRATION)]

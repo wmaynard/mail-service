@@ -1,9 +1,6 @@
-using System.Collections.Generic;
 using System.Linq;
-using MongoDB.Driver;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Minq;
-using Rumble.Platform.Common.Services;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
 
@@ -41,7 +38,7 @@ public class GlobalMessageService : MinqService<MailboxMessage>
         ?? throw new PlatformException(message: "Global message to expire was not found.");
 
     public MailboxMessage Expire(string id) => mongo
-        .SingleDocument(id)
+        .ExactId(id)
         .Upsert(query => query.SetToCurrentTimestamp(message => message.Expiration));
 
 
