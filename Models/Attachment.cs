@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using System.Text.Json.Serialization;
 using MongoDB.Bson.Serialization.Attributes;
 using Rumble.Platform.Data;
@@ -31,19 +32,15 @@ public class Attachment : PlatformDataModel
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_QUANTITY)]
     public int Quantity { get; private set; }
 
-    // TODO also change string to whatever type we decide on
-    public Attachment(string type, string rewardId, int quantity = 1)
+    protected override void Validate(out List<string> errors)
     {
-        Type = type;
-        RewardId = rewardId;
-        Quantity = quantity;
+        errors = new List<string>();
         
-        // TODO
-        // Probably better to throw an exception when quantity is 0.  However, I don't know if there's a specific use case for this.
-        // Letting a bad request through by defaulting the value to a valid one may be more confusing than seeing errors.
-        if (quantity == 0)
-        {
-            Quantity = 1;
-        }
+        if (string.IsNullOrWhiteSpace(Type))
+            errors.Add($"{FRIENDLY_KEY_TYPE} must be a non-empty string.");
+        if (string.IsNullOrWhiteSpace(RewardId))
+            errors.Add($"{FRIENDLY_KEY_REWARD_ID} must be a non-empty string.");
+        if (Quantity <= 0)
+            errors.Add($"{FRIENDLY_KEY_QUANTITY} must be greater than 0.");
     }
 }

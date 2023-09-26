@@ -6,6 +6,7 @@ using MongoDB.Bson.Serialization.Attributes;
 using RCL.Logging;
 using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Exceptions;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Data;
 
@@ -43,7 +44,6 @@ public class MailboxMessage : PlatformCollectionDocument
     public const string FRIENDLY_KEY_BANNER = "banner";
     public const string FRIENDLY_KEY_STATUS = "status";
     public const string FRIENDLY_KEY_INTERNAL_NOTE = "internalNote";
-    public const string FRIENDLY_KEY_PREVIOUS_VERSIONS = "previousVersions";
 
     internal const string DB_KEY_FOR_ACCOUNTS_BEFORE = "acctsbefore";
 
@@ -56,9 +56,13 @@ public class MailboxMessage : PlatformCollectionDocument
     
     public const string FRIENDLY_KEY_RECIPIENT = "accountId";
     
-    [BsonIgnore, BsonIgnoreIfNull]
+    [BsonElement(TokenInfo.DB_KEY_ACCOUNT_ID), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_RECIPIENT), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public string Recipient { get; set; }
+    
+    [BsonElement("gid"), BsonIgnoreIfNull]
+    [JsonInclude, JsonPropertyName("globalMessageId")]
+    public string GlobalMessageId { get; set; }
     
     [BsonElement(DB_KEY_SUBJECT)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT)]
@@ -112,10 +116,6 @@ public class MailboxMessage : PlatformCollectionDocument
     [BsonElement(DB_KEY_INTERNAL_NOTE), BsonDefaultValue(null)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_INTERNAL_NOTE)]
     public string InternalNote { get; private set; }
-    
-    [BsonElement(DB_KEY_PREVIOUS_VERSIONS), BsonIgnoreIfNull]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PREVIOUS_VERSIONS)]
-    public List<MailboxMessage> PreviousVersions { get; private set; }
 
     [BsonIgnore]
     [JsonIgnore]
@@ -125,7 +125,6 @@ public class MailboxMessage : PlatformCollectionDocument
     {
         Icon = "";
         Banner = "";
-        PreviousVersions = new List<MailboxMessage>();
         Id = ObjectId.GenerateNewId().ToString();
         CreatedOn = Timestamp.UnixTime;
     }
@@ -137,17 +136,6 @@ public class MailboxMessage : PlatformCollectionDocument
         Status = (Status == StatusType.UNCLAIMED)
              ? StatusType.CLAIMED
              : throw new PlatformException(message: $"Message has already been claimed!");
-    }
-
-    public void RemovePrevious() => PreviousVersions = null;
-
-    public void UpdatePrevious(MailboxMessage mailboxMessage)
-    {
-        // Need to keep this way to prevent nested previousVersions in old copies
-        List<MailboxMessage> oldPrevious = mailboxMessage.PreviousVersions;
-        mailboxMessage.RemovePrevious();
-        oldPrevious.Add(mailboxMessage);
-        PreviousVersions.AddRange(oldPrevious);
     }
 
     public new void Validate() // add future validations here

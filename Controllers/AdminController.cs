@@ -7,6 +7,7 @@ using Rumble.Platform.Common.Attributes;
 using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
+using Rumble.Platform.Common.Models;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.Common.Web;
 using Rumble.Platform.Data;
@@ -19,7 +20,8 @@ namespace Rumble.Platform.MailboxService.Controllers;
 public class AdminController : PlatformController
 {
 #pragma warning disable
-    private readonly InboxService _inboxService;
+    // private readonly InboxService _inboxService;
+    private readonly MinqInboxService _minqbox;
     private readonly GlobalMessageService _globalMessageService;
     private readonly MessageService _messageService;
 #pragma warning restore
@@ -60,9 +62,9 @@ public class AdminController : PlatformController
     {
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
         
-        _messageService.Replace(mailboxMessage);
-
-        return Ok(_inboxService.Get(mailboxMessage.Recipient));
+        _messageService.Update(mailboxMessage);
+        
+        return Ok(_minqbox.FromId(mailboxMessage.Recipient));
     }
     
     // Expires a message in a player's account
@@ -71,161 +73,44 @@ public class AdminController : PlatformController
     
     #endregion
     
-    #region Global Messages
+#region Global Messages
     // Fetches all global messages
     [HttpGet, Route(template: "global/messages")]
     public ActionResult GlobalMessageList() => Ok(new RumbleJson
     {
-        {"globalMessages", _globalMessageService.GetAllGlobalMessages()}
+        { "globalMessages", _globalMessageService.Fetch(includeInactive: true) }
     });
 
     // Sends a new global message
     [HttpPost, Route(template: "global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
-        _globalMessageService.Create(Require<MailboxMessage>(key: "globalMessage"));
+        _globalMessageService.Insert(Require<MailboxMessage>("globalMessage"));
         
         return Ok();
     }
-    
-    /////////////////////////////////
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    ///
-    /// 
 
     // Edits an existing global message
     [HttpPatch, Route(template: "global/messages/edit")]
     public ObjectResult GlobalMessageEdit()
     {
-
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "globalMessage");
+        mailboxMessage.GlobalMessageId = mailboxMessage.Id;
 
         if (string.IsNullOrEmpty(mailboxMessage.Id))
-        {
             throw new PlatformException(message: "Global message update failed. A message id is required.");
-        }
         
-        mailboxMessage.Validate();
-
-        MailboxMessage oldMailboxMessage = _globalMessageService.Get(mailboxMessage.Id);
-        
-        if (oldMailboxMessage == null)
-            throw new PlatformException(message: $"Global message to edit not found.");
-        
-        mailboxMessage.UpdatePrevious(oldMailboxMessage);
-        
-        try
-        {
-            mailboxMessage.Validate();
-        }
-        catch (Exception e)
-        {
-            throw new PlatformException(message: "Editing global message failed.", inner: e);
-        }
-        
-        _inboxService.UpdateAll(id: mailboxMessage.Id, edited: mailboxMessage);
         _globalMessageService.Update(mailboxMessage);
-
-        return Ok(mailboxMessage.ResponseObject);
+        _messageService.UpdateMany(mailboxMessage);
+        
+        return Ok(mailboxMessage);
     }
 
     // Expires an existing global message
     [HttpPatch, Route(template: "global/messages/expire")]
-    public ObjectResult GlobalMessageExpire()
-    {
-        string messageId = Require<string>(key: "messageId");
-        MailboxMessage mailboxMessage = _globalMessageService.Get(messageId);
+    public ObjectResult ExpireGlobalMessage() => Ok(_globalMessageService.Expire(Require<string>(key: "messageId")));
+#endregion
 
-        if (mailboxMessage == null)
-            throw new PlatformException(message: $"Global message to expire was not found.");
-
-        MailboxMessage copy = mailboxMessage.Copy(); // circular reference otherwise
-        mailboxMessage.UpdatePrevious(copy);
-    
-        mailboxMessage.Expire();
-    
-        _inboxService.UpdateExpiration(id: messageId);
-        _globalMessageService.Update(mailboxMessage);
-        return Ok(mailboxMessage.ResponseObject);
-    }
-    #endregion
-
-    #region Player Inbox
-    // Fetches a player's inbox without needing their token
     [HttpGet, Route(template: "inbox")]
-    public ObjectResult GetInboxAdmin()
-    {
-        string accountId = Require<string>(key: "accountId");
-        Inbox accountInbox = _inboxService.Get(accountId);
-
-        if (accountInbox == null)
-        {
-            throw new PlatformException(message: $"Inbox with accountId not found.");
-        }
-        
-        // updating global messages
-        MailboxMessage[] globals = _globalMessageService.GetActiveGlobalMessages()
-            .Where(message => !(accountInbox.Messages.Select(inboxMessage => inboxMessage.Id).Contains(message.Id)))
-            .Where(message => !message.IsExpired)
-            .Where(message => message.ForAccountsBefore > accountInbox.Timestamp || message.ForAccountsBefore == null)
-            .Select(message => message)
-            .ToArray();
-        try
-        {
-            accountInbox.Messages.AddRange(globals);
-            if (accountInbox.History == null)
-            {
-                accountInbox.CreateHistory();
-            }
-            accountInbox.History.AddRange(globals);
-        }
-        catch (Exception e)
-        {
-            Log.Error(owner: Owner.Nathan, message: "Error while trying to add globals to account. Inbox may be malformed.", exception: e);
-        }
-        
-        List<MailboxMessage> unexpiredMessages = accountInbox.Messages
-            .Where(message => !message.IsExpired)
-            .Select(message => message)
-            .OrderBy(message => message.Expiration)
-            .ToList();
-        foreach (MailboxMessage message in unexpiredMessages)
-        {
-            message.Validate();
-        }
-        accountInbox.Messages = unexpiredMessages;
-
-        _inboxService.Update(accountInbox);
-
-        List<MailboxMessage> filteredMessages = accountInbox.Messages
-            .Where(message => message.VisibleFrom < Timestamp.UnixTime)
-            .Select(message => message)
-            .ToList();
-        
-        Inbox filteredInbox = new Inbox(aid: accountInbox.AccountId, messages: filteredMessages, history: accountInbox.History, timestamp: accountInbox.Timestamp, id: accountInbox.Id);
-        
-        return Ok(filteredInbox.ResponseObject);
-    }
-    #endregion
+    public ObjectResult GetPlayerInbox() => Ok(_minqbox.FromId(Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID)));
 }

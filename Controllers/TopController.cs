@@ -8,8 +8,6 @@ namespace Rumble.Platform.MailboxService.Controllers;
 public class TopController : PlatformController
 {
 #pragma warning disable
-    private readonly InboxService _inboxService;
-    private readonly GlobalMessageService _globalMessageService;
 #pragma warning restore
     
     // /health is handled by the base PlatformController and HealthService.
