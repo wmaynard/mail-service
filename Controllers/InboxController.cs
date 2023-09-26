@@ -11,7 +11,7 @@ namespace Rumble.Platform.MailboxService.Controllers;
 public class InboxController : PlatformController
 {
 #pragma warning disable
-    private readonly MinqInboxService _inboxService;
+    private readonly InboxService _inboxService;
     private readonly GlobalMessageService _globalMessageService;
     private readonly MessageService _messageService;
 #pragma warning restore

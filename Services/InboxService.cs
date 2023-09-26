@@ -9,9 +9,9 @@ using Rumble.Platform.MailboxService.Models;
 
 namespace Rumble.Platform.MailboxService.Services;
 
-public class MinqInboxService : MinqService<Inbox>
+public class InboxService : MinqService<Inbox>
 {
-    public MinqInboxService() : base("inboxes") { }
+    public InboxService() : base("inboxes") { }
 
     // TODO: Grab their messages
     public override Inbox FromId(string accountId) => mongo

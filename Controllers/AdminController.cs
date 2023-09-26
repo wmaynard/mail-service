@@ -21,7 +21,7 @@ public class AdminController : PlatformController
 {
 #pragma warning disable
     // private readonly InboxService _inboxService;
-    private readonly MinqInboxService _minqbox;
+    private readonly InboxService _minqbox;
     private readonly GlobalMessageService _globalMessageService;
     private readonly MessageService _messageService;
 #pragma warning restore
