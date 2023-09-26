@@ -109,5 +109,13 @@ public class AdminController : PlatformController
 #endregion
 
     [HttpGet, Route(template: "inbox")]
-    public ObjectResult GetPlayerInbox() => Ok(_inboxService.FromId(Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID)));
+    public ObjectResult GetPlayerInbox()
+    {
+        string accountId = Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID);
+        
+        Inbox output = _inboxService.FromId(accountId);
+        output.Messages = _messageService.GetUnexpiredMessages(accountId);
+            
+        return Ok(output);
+    }
 }
