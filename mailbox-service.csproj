@@ -17,10 +17,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="platform-csharp-common" Version="1.3.88" />
-    </ItemGroup>
-
-    <ItemGroup>
       <Compile Remove="chart\**" />
     </ItemGroup>
 
@@ -36,5 +32,9 @@
       <Content Remove="chart\**" />
     </ItemGroup>
 
+
+    <ItemGroup>
+      <PackageReference Include="platform-csharp-common" Version="1.3.89" />
+    </ItemGroup>
 
 </Project>

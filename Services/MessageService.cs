@@ -74,16 +74,28 @@ public class MessageService : MinqTimerService<MailboxMessage>
         )
         .ToArray();
 
-    public long Claim(string accountId, string messageId = null) => string.IsNullOrWhiteSpace(messageId)
-        ? mongo
-            .Where(query => query.EqualTo(message => message.Recipient, accountId))
-            .Update(query => query.Set(message => message.Status, MailboxMessage.StatusType.CLAIMED))
-        : mongo
+    public MailboxMessage[] Claim(string accountId, string messageId = null)
+    {
+        MailboxMessage[] output = mongo
             .Where(query => query
                 .EqualTo(message => message.Recipient, accountId)
-                .EqualTo(message => message.Id, messageId)
+                .LessThanOrEqualTo(message => message.VisibleFrom, Timestamp.UnixTime)
+                .GreaterThanOrEqualTo(message => message.Expiration, Timestamp.UnixTime)
+                .EqualTo(message => message.Status, MailboxMessage.StatusType.UNCLAIMED)
             )
-            .Update(query => query.Set(message => message.Status, MailboxMessage.StatusType.CLAIMED));
+            .And(query => query.EqualTo(message => message.Id, messageId), condition: !string.IsNullOrWhiteSpace(messageId))
+            .Limit(100)
+            .UpdateAndReturn(query => query.Set(message => message.Status, MailboxMessage.StatusType.CLAIMED), out long affected);
+        
+        if (affected == 0)
+            Log.Warn(Owner.Will, "Tried to claim message(s), but no messages matching the request are available to claim.", data: new
+            {
+                Help = "This could be because a message had seconds to go when a player saw it in their inbox and expired, or tried to claim all messages when none were available",
+                MessageId = messageId,
+                AccountId = accountId
+            });
+        return output;
+    }
     
     protected override void OnElapsed()
     {
