@@ -34,7 +34,7 @@
 
 
     <ItemGroup>
-      <PackageReference Include="platform-csharp-common" Version="1.3.89" />
+      <PackageReference Include="platform-csharp-common" Version="1.3.94" />
     </ItemGroup>
 
 </Project>
