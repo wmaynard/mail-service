@@ -14,6 +14,6 @@ public class InboxService : MinqService<Inbox>
         .Upsert(query => query
             .Set(inbox => inbox.AccountId, accountId)
             .SetToCurrentTimestamp(inbox => inbox.LastAccessed)
-            .SetOnInsert(inbox => inbox.CreatedOn, Timestamp.UnixTime)
+            .SetOnInsert(inbox => inbox.CreatedOn, Timestamp.Now)
         );
 }

@@ -14,15 +14,15 @@ public class GlobalMessageService : MinqService<MailboxMessage>
         ? mongo.All().ToArray()
         : mongo
             .Where(query => query
-                .LessThan(message => message.VisibleFrom, Timestamp.UnixTime)
-                .GreaterThan(message => message.Expiration, Timestamp.UnixTime)
+                .LessThan(message => message.VisibleFrom, Timestamp.Now)
+                .GreaterThan(message => message.Expiration, Timestamp.Now)
             )
             .ToArray();
 
     public MailboxMessage[] GetEligibleMessages(Inbox inbox) => mongo
         .Where(query => query
-            .LessThan(message => message.VisibleFrom, Timestamp.UnixTime)
-            .GreaterThan(message => message.Expiration, Timestamp.UnixTime)
+            .LessThan(message => message.VisibleFrom, Timestamp.Now)
+            .GreaterThan(message => message.Expiration, Timestamp.Now)
             .GreaterThan(message => message.ForAccountsBefore, inbox.CreatedOn)
         )
         .Sort(sort => sort.OrderByDescending(message => message.Expiration))

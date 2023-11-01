@@ -120,17 +120,17 @@ public class MailboxMessage : PlatformCollectionDocument
 
     [BsonIgnore]
     [JsonIgnore]
-    public bool IsExpired => Expiration <= Timestamp.UnixTime; // no setter, change expiration to UnixTime instead
+    public bool IsExpired => Expiration <= Timestamp.Now; // no setter, change expiration to UnixTime instead
 
     public MailboxMessage()
     {
         Icon = "";
         Banner = "";
         Id = ObjectId.GenerateNewId().ToString();
-        CreatedOn = Timestamp.UnixTime;
+        CreatedOn = Timestamp.Now;
     }
 
-    public void Expire() => Expiration = Timestamp.UnixTime;
+    public void Expire() => Expiration = Timestamp.Now;
 
     public void UpdateClaimed()
     {

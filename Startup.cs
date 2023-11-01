@@ -7,7 +7,7 @@ namespace Rumble.Platform.MailboxService;
 public class Startup : PlatformStartup
 {
     protected override PlatformOptions ConfigureOptions(PlatformOptions options) => options
-        .SetProjectOwner(Owner.Nathan)
+        .SetProjectOwner(Owner.Will)
         .SetLogglyThrottleThreshold(10_000, 600)
         .SetTokenAudience(Audience.MailService)
         .SetRegistrationName("Mail")

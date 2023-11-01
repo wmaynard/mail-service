@@ -69,8 +69,8 @@ public class MessageService : MinqTimerService<MailboxMessage>
     public MailboxMessage[] GetUnexpiredMessages(string accountId) => mongo
         .Where(query => query
             .EqualTo(message => message.Recipient, accountId)
-            .LessThanOrEqualTo(message => message.VisibleFrom, Timestamp.UnixTime)
-            .GreaterThanOrEqualTo(message => message.Expiration, Timestamp.UnixTime)
+            .LessThanOrEqualTo(message => message.VisibleFrom, Timestamp.Now)
+            .GreaterThanOrEqualTo(message => message.Expiration, Timestamp.Now)
         )
         .ToArray();
 
@@ -79,8 +79,8 @@ public class MessageService : MinqTimerService<MailboxMessage>
         MailboxMessage[] output = mongo
             .Where(query => query
                 .EqualTo(message => message.Recipient, accountId)
-                .LessThanOrEqualTo(message => message.VisibleFrom, Timestamp.UnixTime)
-                .GreaterThanOrEqualTo(message => message.Expiration, Timestamp.UnixTime)
+                .LessThanOrEqualTo(message => message.VisibleFrom, Timestamp.Now)
+                .GreaterThanOrEqualTo(message => message.Expiration, Timestamp.Now)
                 .EqualTo(message => message.Status, MailboxMessage.StatusType.UNCLAIMED)
             )
             .And(query => query.EqualTo(message => message.Id, messageId), condition: !string.IsNullOrWhiteSpace(messageId))
@@ -99,13 +99,8 @@ public class MessageService : MinqTimerService<MailboxMessage>
     
     protected override void OnElapsed()
     {
-        const long ONE_WEEK = 604_800;
-        long offset = Optional<DynamicConfig>()
-            .Optional<long?>("INBOX_DELETE_OLD_SECONDS")
-            ?? ONE_WEEK;
-        
         long affected = mongo
-            .Where(query => query.LessThanOrEqualTo(message => message.Expiration, Timestamp.UnixTime - offset))
+            .Where(query => query.LessThanOrEqualTo(message => message.Expiration, Timestamp.OneWeekAgo))
             .Delete();
         
         if (affected > 0)
