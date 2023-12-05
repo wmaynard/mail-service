@@ -1,3 +1,5 @@
+using Rumble.Platform.Common.Enums;
+using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Minq;
 using Rumble.Platform.Common.Utilities;
 using Rumble.Platform.MailboxService.Models;
@@ -16,4 +18,17 @@ public class InboxService : MinqService<Inbox>
             .SetToCurrentTimestamp(inbox => inbox.LastAccessed)
             .SetOnInsert(inbox => inbox.CreatedOn, Timestamp.Now)
         );
+
+    public void EnforceAccountAgeOver(string accountId, long seconds)
+    {
+        long created = mongo
+            .Where(query => query.EqualTo(inbox => inbox.AccountId, accountId))
+            .Limit(1)
+            .Upsert()
+            ?.CreatedOn
+            ?? Timestamp.Now;
+
+        if (created > Timestamp.Now - seconds)
+            throw new PlatformException("Account is not old enough to be eligible for a reward", code: ErrorCode.Ineligible);
+    }
 }

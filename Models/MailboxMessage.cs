@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Linq;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using Amazon.Auth.AccessControlPolicy;
@@ -33,11 +34,9 @@ public class MailboxMessage : PlatformCollectionDocument
     internal const string DB_KEY_STATUS = "status";
     internal const string DB_KEY_INTERNAL_NOTE = "note";
     internal const string DB_KEY_PREVIOUS_VERSIONS = "prev";
-    internal const string DB_KEY_PROMO_CODE = "promo";
 
     public const string FRIENDLY_KEY_SUBJECT = "subject";
     public const string FRIENDLY_KEY_BODY = "body";
-    public const string FRIENDLY_KEY_PROMO_CODE = "claimCode";
     public const string FRIENDLY_KEY_ATTACHMENTS = "attachments";
     public const string FRIENDLY_KEY_DATA = "data";
     public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
@@ -52,10 +51,9 @@ public class MailboxMessage : PlatformCollectionDocument
 
     public const string FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE = "forAccountsBefore";
     
-    [AdditionalIndexKey(group: "INDEX_GROUP_MESSAGE", key: "_id", priority: 0)]
     [BsonElement(DB_KEY_FOR_ACCOUNTS_BEFORE), BsonIgnoreIfDefault]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_FOR_ACCOUNTS_BEFORE), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-    public long? ForAccountsBefore { get; private set; }
+    public long? ForAccountsBefore { get; protected set; }
     
     public const string FRIENDLY_KEY_RECIPIENT = "accountId";
     
@@ -69,50 +67,41 @@ public class MailboxMessage : PlatformCollectionDocument
     
     [BsonElement(DB_KEY_SUBJECT)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT)]
-    public string Subject { get; private set; }
-    
-    [BsonElement(DB_KEY_PROMO_CODE), BsonIgnoreIfNull]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PROMO_CODE)]
-    public string PromoCode { get; set; }
+    public string Subject { get; protected set; }
     
     [BsonElement(DB_KEY_BODY)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_BODY)]
-    public string Body { get; private set; }
+    public string Body { get; protected set; }
     
     [BsonElement(DB_KEY_ATTACHMENTS)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ATTACHMENTS)]
-    public List<Attachment> Attachments { get; private set;}
+    public List<Attachment> Attachments { get; protected set;}
     
     [BsonElement(DB_KEY_DATA), BsonIgnoreIfNull]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_DATA), JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     public RumbleJson Data { get; set; }
     
-    [BsonElement(DB_KEY_TIMESTAMP)]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
-    public new long CreatedOn { get; private set; }
-    
-    [CompoundIndex(group: "INDEX_GROUP_MESSAGE", priority: 2)]
     [BsonElement(DB_KEY_EXPIRATION)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_EXPIRATION)]
-    public long Expiration { get; private set; }
+    public long Expiration { get; protected set; }
     
-    [CompoundIndex(group: "INDEX_GROUP_MESSAGE", priority: 2)]
     [BsonElement(DB_KEY_VISIBLE_FROM)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_VISIBLE_FROM)]
-    public long VisibleFrom { get; private set; }
+    public long VisibleFrom { get; protected set; }
     
     [BsonElement(DB_KEY_ICON), BsonDefaultValue(null)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ICON)]
-    public string Icon { get; private set; }
+    public string Icon { get; protected set; }
     
     [BsonElement(DB_KEY_BANNER), BsonDefaultValue(null)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_BANNER)]
-    public string Banner { get; private set; }
+    public string Banner { get; protected set; }
     
     public enum StatusType { UNCLAIMED, CLAIMED }
+    
     [BsonElement(DB_KEY_STATUS)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_STATUS)]
-    public StatusType Status { get; private set; }
+    public StatusType Status { get; protected set; }
      
     // This field generates telemetry entries when players claim their messages.
     // This comes in to economysource.transaction_context and is used in SQL queries for analysis.
@@ -122,18 +111,33 @@ public class MailboxMessage : PlatformCollectionDocument
     // Leaderboards:  MSG-62215869806324548d612eb4 LB-621d7b50ed456b3870d05a4c Tier-0 Score-188 Rank-1
     [BsonElement(DB_KEY_INTERNAL_NOTE), BsonDefaultValue(null)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_INTERNAL_NOTE)]
-    public string InternalNote { get; private set; }
+    public string InternalNote { get; protected set; }
+    
 
     [BsonIgnore]
     [JsonIgnore]
     public bool IsExpired => Expiration <= Timestamp.Now; // no setter, change expiration to UnixTime instead
+    
+    internal const string DB_KEY_PROMO_CODE = "promo";
+    public const string FRIENDLY_KEY_PROMO_CODE = "claimCode";
+    
+    [BsonElement("minAge")]
+    [JsonInclude, JsonPropertyName("minimumAgeInSeconds")]
+    public long MinimumAccountAge { get; set; }
+    
+    [BsonElement(DB_KEY_PROMO_CODE), BsonIgnoreIfNull]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PROMO_CODE)]
+    public string PromoCode { get; set; }
+    
+    [BsonElement("redirect")]
+    [JsonInclude, JsonPropertyName("redirectUrl")]
+    public string RedirectUrl { get; set; }
 
     public MailboxMessage()
     {
         Icon = "";
         Banner = "";
         Id = ObjectId.GenerateNewId().ToString();
-        CreatedOn = Timestamp.Now;
     }
 
     public void Expire() => Expiration = Timestamp.Now;
@@ -145,32 +149,23 @@ public class MailboxMessage : PlatformCollectionDocument
              : throw new PlatformException(message: $"Message has already been claimed!");
     }
 
-    public new void Validate() // add future validations here
+    protected override void Validate(out List<string> errors)
     {
-        // DRY - don't repeat yourself
-        static long ConvertUnixMStoS(long value)
-        {
-            switch (value)
-            {
-                // more efficient than converting to string and checking length
-                case < 10_000_000_000_000 and >= 1_000_000_000_000:
-                    return value / 1_000; // convert from ms to s by dropping last 3 digits
-                // in case neither ms or s unix time (not 13 or 10 digits)
-                case < 1_000_000_000 or >= 10_000_000_000:
-                    throw new PlatformException(message: "Timestamp is not a Unix timestamp (either in seconds or in milliseconds).");
-                default:
-                    return value;
-            }
-        }
-
-        if (Subject == null)
-            throw new PlatformException(message: "Subject cannot be null.");
-
-        Body ??= "";
+        errors = new List<string>();
         Attachments ??= new List<Attachment>();
-        CreatedOn = ConvertUnixMStoS(CreatedOn);
-        Expiration = ConvertUnixMStoS(Expiration);
-        VisibleFrom = ConvertUnixMStoS(VisibleFrom);
-        Id ??= ObjectId.GenerateNewId().ToString();
+        
+        if (string.IsNullOrWhiteSpace(Subject))
+            errors.Add("A subject must be provided.");
+        if (string.IsNullOrWhiteSpace(Body))
+            errors.Add("A body must be provided.");
+        if (this is not CampaignMessage)
+            return;
+        
+        if (string.IsNullOrWhiteSpace(PromoCode))
+            errors.Add("A claim code must be provided.");
+        if (!Attachments.Any())
+            errors.Add("Campaign rewards must have at least one attachment");
+        if (Expiration == 0)
+            Expiration = Timestamp.InTheFuture(years: 30);
     }
 }

@@ -24,9 +24,6 @@ public class Inbox : PlatformCollectionDocument
     public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
     public const string FRIENDLY_KEY_HISTORY = "history";
     
-    [AdditionalIndexKey(group: "INDEX_GROUP_INBOX", key: "_id", priority: 0)]
-    [SimpleIndex]
-    [CompoundIndex(group: "INDEX_GROUP_INBOX", priority: 1)]
     [BsonElement(DB_KEY_ACCOUNT_ID)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_ACCOUNT_ID)]
     public string AccountId { get; private set; }
@@ -34,10 +31,6 @@ public class Inbox : PlatformCollectionDocument
     [BsonElement(DB_KEY_MESSAGES)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_MESSAGES)]
     public MailboxMessage[] Messages { get; set; }
-
-    [BsonElement(DB_KEY_TIMESTAMP)]
-    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_TIMESTAMP)]
-    public new long CreatedOn { get; private set; }
     
     [JsonIgnore]
     [BsonElement("accessedOn")]

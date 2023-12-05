@@ -17,6 +17,7 @@ public class TopController : PlatformController
     private readonly CampaignService _campaigns;
     private readonly MessageService _messages;
     private readonly GuidService _guids;
+    private readonly InboxService _inboxes;
     #pragma warning restore
 
     [HttpGet, Route("claim"), NoAuth]
@@ -26,7 +27,7 @@ public class TopController : PlatformController
         string accountId;
         GuidPairing pairing = null;
         
-        if (DynamicConfig.Optional<bool>("useSecureCampaignFormat", defaultValue: false))
+        if (DynamicConfig.Optional<bool>("useGuidCampaignFormat", defaultValue: false))
         {
             pairing = _guids.EnforceValidCode(promoCode);
             promoCode = pairing.PromoCode;
@@ -43,6 +44,7 @@ public class TopController : PlatformController
         MailboxMessage reward = _campaigns.FromClaimCode(promoCode);
         reward.ChangeId();
         
+        _inboxes.EnforceAccountAgeOver(accountId, reward.MinimumAccountAge);
         _messages.EnforcePromoUnclaimed(accountId, promoCode);
 
         reward.Recipient = accountId;

@@ -9,7 +9,7 @@ using Rumble.Platform.MailboxService.Models;
 
 namespace Rumble.Platform.MailboxService.Services;
 
-public class CampaignService : MinqService<MailboxMessage>
+public class CampaignService : MinqService<CampaignMessage>
 {
     public CampaignService() : base("campaigns")
     {
@@ -26,7 +26,7 @@ public class CampaignService : MinqService<MailboxMessage>
         )
         ?? throw new PlatformException("Campaign expired or unavailable", code: ErrorCode.MongoUnexpectedFoundCount);
 
-    public MailboxMessage[] Define(MailboxMessage[] messages)
+    public MailboxMessage[] Define(CampaignMessage[] messages)
     {
         mongo.WithTransaction(out Transaction transaction);
         try

@@ -4,7 +4,12 @@ Mailbox now supports the ability to grant players rewards based on engagement wi
 
 ## Step 1: Defining Message Rewards
 
-Before we can send rewards out to players, we have to define what the messages will look like when delivered to players.  We do that by defining **campaigns.**  To do this, we need a new field, `claimCode`, which is used as a unique identifier for the message:
+Before we can send rewards out to players, we have to define what the messages will look like when delivered to players.  We do that by defining **campaigns.**  To do this, we need three new fields:
+
+* `claimCode`, which is used as a unique identifier for the message
+* `redirectUrl`, the URL to send players to after they've **successfully** claimed their rewards
+  * The failure redirect is stored separately in Dynamic Config under DMZ, as `mailClaimFailurePage`.  When a claim fails, DMZ will not have access to information beyond an error code, and especially when claiming promo codes is concerned it may be desirable to leave a generic error message for players, such as "Ineligible or reward expired", and just leave it at that.  We will have logs showing more detail if needed.
+* `minimumAgeInSeconds`, the minimum age an account has to be in order to collect the specific campaign rewards
 
 
 ```
@@ -22,23 +27,22 @@ POST /mail/admin/campaigns
                 }
             ],
             "data": {},
-            "timestamp": 1701734417,
-            "expiration": 1733385617,
-            "visibleFrom": 1701734417,
             "icon": "",
             "banner": "",
             "internalNote": "testCampaign",
-            "claimCode": "test_1"                         // <---
+            "claimCode": "test_2",                         // <--
+            "redirectUrl": "https://towersandtitans.com/", // <-- 
+            "minimumAgeInSeconds": 86400                   // <--
         }
     ]
 }
 
 HTTP 200
 {
+    // Returns a copy of the data sent to it, but not previously-existing / unmodified campaigns.
     "campaigns": [
         {
             "subject": "Hello, World!",
-            "claimCode": "test_1",
             "body": "This is a test of the email campaign rewards system",
             "attachments": [
                 {
@@ -48,25 +52,34 @@ HTTP 200
                 }
             ],
             "data": {},
-            "timestamp": 1701734417,
-            "expiration": 1733385617,
-            "visibleFrom": 1701734417,
+            "timestamp": 1701808200,
+            "expiration": 2648579400,
+            "visibleFrom": 0,
             "icon": "",
             "banner": "",
             "status": 0,
             "internalNote": "testCampaign",
-            "id": "656e7822b83dedcdeabbe225",
-            "createdOn": 1701738531
+            "minimumAgeInSeconds": 86400,
+            "claimCode": "test_2",
+            "redirectUrl": "https://towersandtitans.com/",
+            "id": "656f8848c352522d76b18334",
+            "createdOn": 1701808201
         }
     ]
 }
 ```
 
+A couple of notes:
+
+* If `expiration` is left blank or 0, it will be set to 30 years from the current time.  While mail-service does allow expirations, keep in mind that if the mail is expired when someone tries to collect it, they will see a failure screen.
+* `id` & `createdOn` are assigned and returned, but these aren't necessary for any purpose beyond data queries on the Platform side.  Do not specify an `id` when submitting campaigns.
+* Pre-existing campaigns with identical claim codes are **deleted**.  In the above example, if there was a campaign with a claim code of `test_2` already, it would be lost and this one would take its place.
+
 ## Step 2: Creating the Claim URL
 
 There are two different ways to accomplish this step.  
 
-### Method 1: Naive
+### Method 1: Account Age-Based Verification
 
 **Important:** This documentation is specifically for mail-service requests.  All public-facing traffic should first go through DMZ.
 
@@ -77,10 +90,9 @@ In the first method, we take a naive approach and operate just off of account ID
 
 HTTP 200
 {
-    "mailboxMessage": {
-        "accountId": "deadbeefdeadbeefdeadbeef",
+    "campaignMessage": {
+        "accountId": "656f886c8be2aefc0e260fd0",
         "subject": "Hello, World!",
-        "claimCode": "test_1",
         "body": "This is a test of the email campaign rewards system",
         "attachments": [
             {
@@ -90,37 +102,32 @@ HTTP 200
             }
         ],
         "data": {},
-        "timestamp": 1701734417,
-        "expiration": 1733385617,
-        "visibleFrom": 1701734417,
+        "expiration": 2648579400,
+        "visibleFrom": 0,
         "icon": "",
         "banner": "",
         "status": 0,
         "internalNote": "testCampaign",
-        "id": "656e7db5db6196f8d2a14eb0",
-        "createdOn": 1701739957
+        "minimumAgeInSeconds": 86400,
+        "claimCode": "test_2",
+        "redirectUrl": "https://towersandtitans.com/",
+        "id": "656f99cb740c40c66aebf2ec",
+        "createdOn": 1701812684
     }
 }
 ```
 
-**Why is this insecure?**
+This approach is less secure than the Guid-based approach.  Because one of the parameters is the account ID, and links can be seen by players, it allows anyone to change the URL to any account ID they might know of (whether it's theirs or a friend's), and as a consequence rewards might be given out to people not yet subscribed.  The account age requirement prevents young accounts from abusing this, however.
 
-We plan on doling out increasingly-better rewards as time moves on.  Since the URL is inspectable by anyone who receives it, it will only take minimal effort for an enterprising player to realize that they can make a script to grant rewards to hundreds or thousands of players.  This is especially problematic when later rewards are much more valuable, and we may end up in a situation where brand new players (or duplicate accounts!) are able to spam freebies.  As an example:
+We can harden our system and lock it down further by creating a unique ID for every reward, guaranteeing that every player's reward code is exclusive to just that player.
 
-* I start an account, I make it to 30d retention and various rewards for doing so.
-* I sign up for 10 alt accounts.  The minute I get my first email, I know what my new account IDs are.
-* I copy/paste all the links from my first account in my browser, but with my new account IDs.
-* I have 10 copies of every reward we've defined on day 1 for these accounts.
+### Method 2: Guid-based promo codes
 
-We can harden our system and lock it down by creating a unique ID for every reward.
+In this second method, we first create a linking between our claim code and a player ID.  Then we use the resulting GUID (globally unique identifier) in the URL instead.  
 
-### Method 2: Secure
+This functionality can be toggled in Dynamic Config using the key `useGuidCampaignFormat` and setting the value to `true` or `false`.
 
-In this second method, we first create a linking between our claim code and a player ID.  Then we use the resulting GUID (globally unique identifier) in the URL instead.
-
-This functionality can be toggled in Dynamic Config using the key `useSecureCampaignFormat` and setting the value to `true` or `false`.
-
-First, create the pairings for every claim code:
+First, create the pairings for every claim code by sending all of the claimCodes we want to create for a specific account ID:
 
 ```
 POST /admin/promoPairings
@@ -186,3 +193,19 @@ This is a Platform-authoritative approach, however: Platform is dictating the GU
 Some email providers may support a system where they are the authority on the GUID, where they create a unique ID and have a way to update our systems to reflect it.
 
 As this secure approach is a rapid iteration to harden our campaign reward claims, it may need to change before it sees a release.
+
+## Step 3: Creating the DMZ Link
+
+This part is rather simple; instead of 
+
+```
+/mail/claim?claimCode=test_2&accountId=656f886c8be2aefc0e260fd0
+```
+
+use:
+
+```
+/dmz/rewards/claim?claimCode=test_2&accountId=656f886c8be2aefc0e260fd0
+```
+
+DMZ is a publicly viewable server, meaning that anyone looking for links in Marketplace or from their email will likely see it.  DMZ masks our end servers, but also has additional features - in this case, request forwarding and redirection handling.

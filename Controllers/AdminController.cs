@@ -124,7 +124,7 @@ public class AdminController : PlatformController
     [HttpPost, Route("campaigns")]
     public ActionResult DefineEmailRewards()
     {
-        MailboxMessage[] rewardEmails = Require<MailboxMessage[]>("campaigns");
+        CampaignMessage[] rewardEmails = Require<CampaignMessage[]>("campaigns");
         
         return Ok(new RumbleJson
         {
