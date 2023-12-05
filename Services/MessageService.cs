@@ -1,5 +1,6 @@
 using System.Linq;
 using RCL.Logging;
+using Rumble.Platform.Common.Enums;
 using Rumble.Platform.Common.Exceptions;
 using Rumble.Platform.Common.Extensions;
 using Rumble.Platform.Common.Minq;
@@ -96,6 +97,14 @@ public class MessageService : MinqTimerService<MailboxMessage>
             });
         return output;
     }
+
+    public bool EnforcePromoUnclaimed(string accountId, string code) => mongo
+        .Count(query => query
+            .EqualTo(message => message.Recipient, accountId)
+            .EqualTo(message => message.PromoCode, code)
+        ) == 0
+        ? true
+        : throw new PlatformException("Already claimed", code: ErrorCode.MongoUnexpectedFoundCount);
     
     protected override void OnElapsed()
     {

@@ -14,33 +14,35 @@ using Rumble.Platform.MailboxService.Services;
 
 namespace Rumble.Platform.MailboxService.Controllers;
 
-[ApiController, Route(template: "mail/admin"), RequireAuth(AuthType.ADMIN_TOKEN)]
+[ApiController, Route("mail/admin"), RequireAuth(AuthType.ADMIN_TOKEN)]
 public class AdminController : PlatformController
 {
 #pragma warning disable
-    private readonly InboxService _inboxService;
-    private readonly GlobalMessageService _globalMessageService;
-    private readonly MessageService _messageService;
+    private readonly InboxService _inboxes;
+    private readonly GlobalMessageService _globalMessages;
+    private readonly MessageService _messages;
+    private readonly CampaignService _campaigns;
+    private readonly GuidService _guids;
 #pragma warning restore
 
     #region Direct Messages
     // Sends a new message to account(s)
-    [HttpPost, Route(template: "messages/send")]
+    [HttpPost, Route("messages/send")]
     public ObjectResult MessageSend()
     {
         string[] accountIds = Require<string[]>(key: "accountIds");
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
 
-        _messageService.Grant(mailboxMessage, accountIds);
+        _messages.Grant(mailboxMessage, accountIds);
         
         return Ok();
     }
     
     // Sends multiple messages to multiple accounts
-    [HttpPost, Route(template: "messages/send/bulk")]
+    [HttpPost, Route("messages/send/bulk")]
     public ObjectResult BulkSend()
     {
-        MailboxMessage[] messages = Require<MailboxMessage[]>(key: "messages");
+        MailboxMessage[] messages = Require<MailboxMessage[]>("messages");
         
         Log.Info(Owner.Will, "Received request to grant a reward.", data: new
         {
@@ -48,47 +50,47 @@ public class AdminController : PlatformController
             MailboxMessage = messages?.FirstOrDefault(),
             count = messages?.Length ?? 0
         }); 
-        _messageService.Insert(messages);
+        _messages.Insert(messages);
 
         return Ok(messages);
     }
 
     // Edits a message in a player's inbox
-    [HttpPatch, Route(template: "messages/edit")]
+    [HttpPatch, Route("messages/edit")]
     public ObjectResult MessageEdit()
     {
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
         
-        _messageService.Update(mailboxMessage);
+        _messages.Update(mailboxMessage);
         
-        return Ok(_inboxService.FromId(mailboxMessage.Recipient));
+        return Ok(_inboxes.FromId(mailboxMessage.Recipient));
     }
     
     // Expires a message in a player's account
-    [HttpPatch, Route(template: "messages/expire")]
-    public ObjectResult MessageExpire() => Ok(_messageService.Expire(Require<string>("messageId")));
+    [HttpPatch, Route("messages/expire")]
+    public ObjectResult MessageExpire() => Ok(_messages.Expire(Require<string>("messageId")));
     
     #endregion
     
 #region Global Messages
     // Fetches all global messages
-    [HttpGet, Route(template: "global/messages")]
+    [HttpGet, Route("global/messages")]
     public ActionResult GlobalMessageList() => Ok(new RumbleJson
     {
-        { "globalMessages", _globalMessageService.Fetch(includeInactive: true) }
+        { "globalMessages", _globalMessages.Fetch(includeInactive: true) }
     });
 
     // Sends a new global message
-    [HttpPost, Route(template: "global/messages/send")]
+    [HttpPost, Route("global/messages/send")]
     public ObjectResult GlobalMessageSend()
     {
-        _globalMessageService.Insert(Require<MailboxMessage>("globalMessage"));
+        _globalMessages.Insert(Require<MailboxMessage>("globalMessage"));
         
         return Ok();
     }
 
     // Edits an existing global message
-    [HttpPatch, Route(template: "global/messages/edit")]
+    [HttpPatch, Route("global/messages/edit")]
     public ObjectResult GlobalMessageEdit()
     {
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "globalMessage");
@@ -97,25 +99,49 @@ public class AdminController : PlatformController
         if (string.IsNullOrEmpty(mailboxMessage.Id))
             throw new PlatformException(message: "Global message update failed. A message id is required.");
         
-        _globalMessageService.Update(mailboxMessage);
-        _messageService.UpdateMany(mailboxMessage);
+        _globalMessages.Update(mailboxMessage);
+        _messages.UpdateMany(mailboxMessage);
         
         return Ok(mailboxMessage);
     }
 
     // Expires an existing global message
-    [HttpPatch, Route(template: "global/messages/expire")]
-    public ObjectResult ExpireGlobalMessage() => Ok(_globalMessageService.Expire(Require<string>(key: "messageId")));
+    [HttpPatch, Route("global/messages/expire")]
+    public ObjectResult ExpireGlobalMessage() => Ok(_globalMessages.Expire(Require<string>(key: "messageId")));
 #endregion
 
-    [HttpGet, Route(template: "inbox")]
+    [HttpGet, Route("inbox")]
     public ObjectResult GetPlayerInbox()
     {
         string accountId = Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID);
         
-        Inbox output = _inboxService.FromId(accountId);
-        output.Messages = _messageService.GetUnexpiredMessages(accountId);
+        Inbox output = _inboxes.FromId(accountId);
+        output.Messages = _messages.GetUnexpiredMessages(accountId);
             
         return Ok(output);
+    }
+
+    [HttpPost, Route("campaigns")]
+    public ActionResult DefineEmailRewards()
+    {
+        MailboxMessage[] rewardEmails = Require<MailboxMessage[]>("campaigns");
+        
+        return Ok(new RumbleJson
+        {
+            { "campaigns", _campaigns.Define(rewardEmails) }
+        });
+    }
+
+    [HttpPost, Route("promoPairings")]
+    public ActionResult GeneratePromoPairs()
+    {
+        string accountId = Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID);
+        long expiration = Require<long>("expiration");
+        string[] promoCodes = Require<string[]>($"{MailboxMessage.FRIENDLY_KEY_PROMO_CODE}s");
+        
+        return Ok(new RumbleJson
+        {
+            { "guids", _guids.Generate(accountId, expiration, promoCodes) }
+        });
     }
 }

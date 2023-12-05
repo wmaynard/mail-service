@@ -33,9 +33,11 @@ public class MailboxMessage : PlatformCollectionDocument
     internal const string DB_KEY_STATUS = "status";
     internal const string DB_KEY_INTERNAL_NOTE = "note";
     internal const string DB_KEY_PREVIOUS_VERSIONS = "prev";
+    internal const string DB_KEY_PROMO_CODE = "promo";
 
     public const string FRIENDLY_KEY_SUBJECT = "subject";
     public const string FRIENDLY_KEY_BODY = "body";
+    public const string FRIENDLY_KEY_PROMO_CODE = "claimCode";
     public const string FRIENDLY_KEY_ATTACHMENTS = "attachments";
     public const string FRIENDLY_KEY_DATA = "data";
     public const string FRIENDLY_KEY_TIMESTAMP = "timestamp";
@@ -68,6 +70,10 @@ public class MailboxMessage : PlatformCollectionDocument
     [BsonElement(DB_KEY_SUBJECT)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_SUBJECT)]
     public string Subject { get; private set; }
+    
+    [BsonElement(DB_KEY_PROMO_CODE), BsonIgnoreIfNull]
+    [JsonInclude, JsonPropertyName(FRIENDLY_KEY_PROMO_CODE)]
+    public string PromoCode { get; set; }
     
     [BsonElement(DB_KEY_BODY)]
     [JsonInclude, JsonPropertyName(FRIENDLY_KEY_BODY)]
