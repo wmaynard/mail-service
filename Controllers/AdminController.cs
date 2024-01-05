@@ -148,9 +148,6 @@ public class AdminController : PlatformController
     [HttpPatch, Route("inboxAge")]
     public ActionResult SetAccountAge()
     {
-        if (PlatformEnvironment.IsProd)
-            throw new PlatformException("Not available on prod.");
-        
         string accountId = Require<string>(TokenInfo.FRIENDLY_KEY_ACCOUNT_ID);
         int days = Require<int>("days");
 
