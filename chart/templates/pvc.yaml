@@ -8,8 +8,6 @@ metadata:
   {{ $args := dict "context" $context "name" $volume.name }}
   name: {{ template "pvcName" $args }}
   labels:
-    track: "{{ $.Values.application.track }}"
-    tier: "{{ $.Values.application.tier }}"
 {{ include "sharedlabels" $context | indent 4 }}
 spec:
   accessModes:

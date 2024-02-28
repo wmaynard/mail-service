@@ -58,13 +58,7 @@ Generate a name for a Persistent Volume Claim
 
 {{- define "sharedlabels" -}}
 app: {{ template "appname" . }}
-chart: "{{ .Chart.Name }}-{{ .Chart.Version| replace "+" "_" }}"
 release: {{ .Release.Name }}
-heritage: {{ .Release.Service }}
-app.kubernetes.io/name: {{ template "appname" . }}
-helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version| replace "+" "_" }}"
-app.kubernetes.io/managed-by: {{ .Release.Service }}
-app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if .Values.extraLabels }}
 {{ toYaml $.Values.extraLabels }}
 {{- end }}
