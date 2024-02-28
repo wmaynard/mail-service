@@ -12,6 +12,7 @@ metadata:
     prometheus.io/port: "{{ .Values.service.internalPort }}"
 {{- end }}
   labels:
+    track: "{{ .Values.application.track }}"
 {{ include "sharedlabels" . | indent 4 }}
 spec:
   type: {{ .Values.service.type }}
@@ -28,4 +29,6 @@ spec:
 {{- end }}
   selector:
     app: {{ template "appname" . }}
+    tier: "{{ .Values.application.tier }}"
+    track: "{{ .Values.application.track }}"
 {{- end -}}
