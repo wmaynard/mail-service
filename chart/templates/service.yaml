@@ -11,9 +11,6 @@ metadata:
     prometheus.io/scrape: "true"
     prometheus.io/port: "{{ .Values.service.internalPort }}"
 {{- end }}
-  labels:
-    track: "{{ .Values.application.track }}"
-{{ include "sharedlabels" . | indent 4 }}
 spec:
   type: {{ .Values.service.type }}
   ports:

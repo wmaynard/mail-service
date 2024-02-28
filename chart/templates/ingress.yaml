@@ -9,8 +9,6 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: {{ template "fullname" . }}
-  labels:
-{{ include "sharedlabels" . | indent 4 }}
   annotations:
 {{ include "ingress.annotations" . | indent 4 }}
 spec:
