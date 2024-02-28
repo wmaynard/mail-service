@@ -6,6 +6,10 @@ metadata:
   annotations:
     {{ if .Values.gitlab.app }}app.gitlab.com/app: {{ .Values.gitlab.app | quote }}{{ end }}
     {{ if .Values.gitlab.env }}app.gitlab.com/env: {{ .Values.gitlab.env | quote }}{{ end }}
+  labels:
+    track: "{{ .Values.application.track }}"
+    tier: "{{ .Values.application.tier }}"
+{{ include "sharedlabels" . | indent 4 }}
 spec:
   selector:
     matchLabels:
@@ -27,6 +31,10 @@ spec:
 {{- if .Values.podAnnotations }}
 {{ toYaml .Values.podAnnotations | indent 8 }}
 {{- end }}
+      labels:
+        track: "{{ .Values.application.track }}"
+        tier: "{{ .Values.application.tier }}"
+{{ include "sharedlabels" . | indent 8 }}
     spec:
 {{- if or (.Values.serviceAccount.name) (.Values.serviceAccountName) }}
       serviceAccountName: {{ .Values.serviceAccount.name | default .Values.serviceAccountName | quote }}
