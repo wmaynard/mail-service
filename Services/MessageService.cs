@@ -28,18 +28,18 @@ public class MessageService : MinqTimerService<MailboxMessage>
             return 0;
         if (globals.Any(message => string.IsNullOrWhiteSpace(message.Recipient)))
             throw new PlatformException("Global message grants must have an account ID.");
-        
-        string[] existing = mongo
-            .Where(query => query.EqualTo(message => message.Recipient, globals.First().Recipient))
-            .And(query => query.ContainedIn(message => message.GlobalMessageId, globals.Select(message => message.GlobalMessageId)))
-            .Project(message => message.GlobalMessageId)
-            .ToArray();
 
         foreach (MailboxMessage message in globals)
         {
             message.GlobalMessageId = message.Id;
             message.ChangeId();
         }
+        
+        string[] existing = mongo
+            .Where(query => query.EqualTo(message => message.Recipient, globals.First().Recipient))
+            .And(query => query.ContainedIn(message => message.GlobalMessageId, globals.Select(message => message.GlobalMessageId)))
+            .Project(message => message.GlobalMessageId)
+            .ToArray();
 
         MailboxMessage[] toInsert = globals
             .Where(global => !string.IsNullOrWhiteSpace(global.GlobalMessageId))
