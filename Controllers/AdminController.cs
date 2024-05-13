@@ -30,7 +30,7 @@ public class AdminController : PlatformController
     [HttpPost, Route("messages/send")]
     public ObjectResult MessageSend()
     {
-        string[] accountIds = Require<string[]>(key: "accountIds");
+        string[] accountIds = Require<string[]>("accountIds");
         MailboxMessage mailboxMessage = Require<MailboxMessage>(key: "message");
 
         _messages.Grant(mailboxMessage, accountIds);

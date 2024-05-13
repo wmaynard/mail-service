@@ -35,12 +35,19 @@ public class MessageService : MinqTimerService<MailboxMessage>
             .Project(message => message.GlobalMessageId)
             .ToArray();
 
+        foreach (MailboxMessage message in globals)
+        {
+            message.GlobalMessageId = message.Id;
+            message.ChangeId();
+        }
+
         MailboxMessage[] toInsert = globals
             .Where(global => !string.IsNullOrWhiteSpace(global.GlobalMessageId))
             .Where(global => !existing.Contains(global.GlobalMessageId))
             .ToArray();
         
-        mongo.Insert(toInsert);
+        if (toInsert.Any())
+            mongo.Insert(toInsert);
         
         return toInsert.Length;
     }

@@ -23,7 +23,11 @@ public class GlobalMessageService : MinqService<MailboxMessage>
         .Where(query => query
             .LessThan(message => message.VisibleFrom, Timestamp.Now)
             .GreaterThan(message => message.Expiration, Timestamp.Now)
-            .GreaterThan(message => message.ForAccountsBefore, inbox.CreatedOn)
+            .Or(or => or
+                .GreaterThan(message => message.ForAccountsBefore, inbox.CreatedOn)
+                .EqualTo(message => message.ForAccountsBefore, 0)
+                .FieldDoesNotExist(message => message.ForAccountsBefore)
+            )
         )
         .Sort(sort => sort.OrderByDescending(message => message.Expiration))
         .ToArray()
