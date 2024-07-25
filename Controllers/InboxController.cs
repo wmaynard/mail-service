@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Rumble.Platform.Common.Attributes;
+using Rumble.Platform.Common.Utilities.JsonTools;
 using Rumble.Platform.Common.Web;
-using Rumble.Platform.Data;
 using Rumble.Platform.MailboxService.Models;
 using Rumble.Platform.MailboxService.Services;
 
